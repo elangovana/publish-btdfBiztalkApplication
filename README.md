@@ -1,4 +1,4 @@
-# publish-btdfBiztalkApplication
+# Publish-BTDFBiztalkApplication
 Powershell module to deploy biztalk applications created using BTDF
 
 ##Description
