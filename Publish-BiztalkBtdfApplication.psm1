@@ -31,7 +31,7 @@
 
 .EXAMPLE 
 
-    publish-btdfBiztalkApplication  -biztalkMsi "C:\mybtdfMsi.msi" -installdir "C:\program files\mybtdfMsi" -biztalkBtdfApp mybtdfMsi -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1 -deployOptions @{"/p:VDIR_USERNAME"="contoso\adam";"/p:VDIR_USERPASS"="@5t7sd";"/p:ENV_SETTINGS"="""c:\program files\mybtdfMsi\Deployment\PortBindings.xml"""} 
+    publish-btdfBiztalkApplication  -biztalkMsi "C:\mybtdfMsi.msi" -installdir "C:\program files\mybtdfMsi"  -biztalkApplicationName DeploymentFramework.Samples.BasicMasterBindings -BtdfProductName "Deployment Framework for BizTalk - BasicMasterBindings" -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1 -deployOptions @{"/p:VDIR_USERNAME"="contoso\adam";"/p:VDIR_USERPASS"="@5t7sd";"/p:ENV_SETTINGS"="""c:\program files\mybtdfMsi\Deployment\PortBindings.xml"""} 
 
     This installs BTDF Biztalk application MSI C:\mybtdfMsi.msi, into install directory C:\program files\mybtdfMsi. in this example, the custom deploy options,  VDIR_USERNAME, VDIR_USERPASS and ENV_SETTINGS are the only deployment options required to deploy the app.
  
@@ -40,7 +40,7 @@
 
 .EXAMPLE 
      To run this script with the awesome whatif switch
-    publish-btdfBiztalkApplication  -biztalkMsi "C:\mybtdfMsi.msi" -installdir "C:\program files\mybtdfMsi" -biztalkBtdfApp mybtdfMsi -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1 -deployOptions @{"/p:ENV_SETTINGS"="""c:\program files\mybtdfMsi\Deployment\PortBindings.xml"""} -whatif
+    publish-btdfBiztalkApplication  -whatif
   
 
 
@@ -57,9 +57,13 @@ Param(
 	[Parameter(Mandatory=$True)]
 	[string]$installdir ,
     
-    #The name of the biztalk application. This must match the name of the biztalk application the msi creates.
+    #The name of the BTDF product name as specified in the btdf project file property <ProductName>..</ProductName>
     [Parameter(Mandatory=$True)]
-    [string] $biztalkBtdfApp, 
+    [string] $btdfProductName, 
+
+     #The name of the biztalk application. This must match the name of the biztalk application the msi creates.
+    [Parameter(Mandatory=$True)]
+    [string] $biztalkApplicationName, 
 
 
     #The backup directory into which an existing Biztalk application, if any, will be backed up to
@@ -85,6 +89,9 @@ Param(
     #Note: There is no need to specify the default variable BT_DEPLOY_MGMT_DB in here, as it is already captured as part of $importIntoBiztalkMgmtDb 
     [hashtable]$undeployOptions = $NULL,
 
+    #When set to true uninstalls existing version. 
+    [boolean]$uninstallExistingVersion = $True,
+
     #This is the BtsTaskPath. Please make sure the path is quoted correctly.
     [string]$btsTaskPath="$env:systemdrive\""Program Files (x86)""\""Microsoft BizTalk Server 2013 R2""\BtsTask.exe",
 
@@ -98,27 +105,31 @@ Param(
 #############Main###########################
 
 $ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+$DebugPreference="Continue"
 
 $script:btsTaskPath = $btsTaskPath 
 
     try{
-	   
-    
-        Write-Host Step 1: Udneploying existing biztalk app $BiztalkBtdfApp   
-        undeploy-btdfBiztalkApp -btdfBiztalkAppName $BiztalkBtdfApp -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir 
+        Write-Debug "Debug mode in on.. Please note that senstive information such as passwords may be logged in clear text"
+        
+        if ($uninstallExistingVersion){   
+            Write-Host Step : Umdeploying existing biztalk app $BiztalkBtdfApp   
+            undeploy-btdfBiztalkApp  -biztalkAppName $biztalkApplicationName -btdfProductName $btdfProductName -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir 
 
-	    Write-Host Step 2: Uninstalling existing biztalk app $BiztalkBtdfApp   
-        uninstall-btdfBiztalkApp $BiztalkBtdfApp  
+	        Write-Host Step  Uninstalling existing biztalk app $BiztalkBtdfApp   
+            uninstall-btdfBiztalkApp $btdfProductName  
+        }
 
-	    Write-Host Step 3: Installing  biztalk msi $BiztalkMsi
+	    Write-Host Step : Installing  biztalk msi $BiztalkMsi
         install-btdfBiztalkApp  $BiztalkMsi -installDir $installdir  -installOptions $installOptions
 
-	    Write-Host Step 4: Deploying iztalk app $BiztalkBtdfApp   
-        deploy-btdfBiztalkApp -btdfBiztalkAppName $BiztalkBtdfApp -isLastBiztalkServer $ImportIntoBiztalkMgmtDb -msbuildExePath $msbuildPath -deployOptionsNameValuePairs $deployOptions 
+	    Write-Host Step : Deploying biztalk app $btdfProductName   
+        deploy-btdfBiztalkApp -btdfProductName $btdfProductName -isLastBiztalkServer $ImportIntoBiztalkMgmtDb -msbuildExePath $msbuildPath -deployOptionsNameValuePairs $deployOptions 
  
   
         Write-Host ------------------------------------------------------------------
-        Write-Host Completed installing $BiztalkBtdfApp using MSI $BiztalkMsi
+        Write-Host Completed installing $btdfProductName using MSI $BiztalkMsi
 
     }
     finally{
@@ -177,7 +188,7 @@ function get-btdfUndeployShortCut(){
         [string]$btdfBiztalkAppName
     )
     #get BTDF shortcuts in the startmenu for the app, regardless of version
-    $undeployAppBasePath = "$Env:SystemDrive\ProgramData\Microsoft\Windows\Start Menu\Programs\$btdfBiztalkAppName*\undeploy $btdfBiztalkAppName*.lnk"
+    $undeployAppBasePath = "$Env:SystemDrive\ProgramData\Microsoft\Windows\Start Menu\Programs\$btdfBiztalkAppName*\undeploy *.lnk"
 
 
     $undeployShortcut  = get-btdfShortCut  $undeployAppBasePath
@@ -192,7 +203,7 @@ function get-btdfDeployShortCut(){
         [string]$btdfBiztalkAppName
     )
     #get BTDF shortcuts in the startmenu for the app, regardless of version
-    $deployAppBasePath = "$Env:SystemDrive\ProgramData\Microsoft\Windows\Start Menu\Programs\$btdfBiztalkAppName*\deploy $btdfBiztalkAppName*.lnk"
+    $deployAppBasePath = "$Env:SystemDrive\ProgramData\Microsoft\Windows\Start Menu\Programs\$btdfBiztalkAppName*\deploy *.lnk"
 
 
     $deployShortcut  = get-btdfShortCut  $deployAppBasePath
@@ -314,7 +325,7 @@ function  deploy-btdfBiztalkApp(){
 	[CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
-    [string]$btdfBiztalkAppName,
+    [string]$btdfProductName,
 
 	[Parameter(Mandatory=$True)]
 
@@ -326,10 +337,10 @@ function  deploy-btdfBiztalkApp(){
 	[hashtable]$deployOptionsNameValuePairs =$null
     )
 
-    Write-Host Deploying biztalk app $btdfBiztalkAppName .......
+    Write-Host Deploying biztalk app $btdfProductName .......
     try{
      
-        $appUninstallCmd = Get-AppUninstallCommand $btdfBiztalkAppName
+        $appUninstallCmd = Get-AppUninstallCommand $btdfProductName
 
         
         #extra check for whatif, when running without any version of the biztalk app installed 
@@ -339,11 +350,11 @@ function  deploy-btdfBiztalkApp(){
            
 
         if ($appUninstallCmd -eq $null){
-            write-error "No  version of  $btdfBiztalkAppName found. Please ensure this app is installed first"
+            write-error "No  version of  $btdfProductName found. Please ensure this app is installed first"
           
         }
       
-		$deployShortCut = get-btdfdeployShortcut $btdfBiztalkAppName
+		$deployShortCut = get-btdfdeployShortcut $btdfProductName
 		write-host Found shortcut for deploying app $deployShortCut
 		$projectFile = get-btdfProjectFileName  $deployShortCut
 		$installStartInDir = $(get-shortcutProperties $deployShortCut).StartIn
@@ -372,9 +383,11 @@ function  undeploy-btdfBiztalkApp(){
 
 	[CmdletBinding(SupportsShouldProcess=$true)]
     param(
-   
     [Parameter(Mandatory=$True)]
-    [string]$btdfBiztalkAppName,
+    [string]$biztalkAppName,
+
+    [Parameter(Mandatory=$True)]
+    [string]$btdfProductName,
 
     [Parameter(Mandatory=$True)]
 	[boolean]$isFirstBiztalkServer,
@@ -390,35 +403,35 @@ function  undeploy-btdfBiztalkApp(){
     
     )
 
-    Write-Host Undeploying biztalk app $btdfBiztalkAppName .......
+    Write-Host Undeploying  $btdfProductName .......
     try{
 
        #check if biztalk app exists, els do nothing and return
-		if (-not(test-biztalkAppExists $btdfBiztalkAppName)){
+		if (-not(test-biztalkAppExists $biztalkAppName)){
 
-			write-host "The application $btdfBiztalkAppName does not exist on the biztalk sever. Nothing to undeploy"
+			write-host "The application $biztalkAppName does not exist on the biztalk sever. Nothing to undeploy"
 			return
          }
 
 		#Take a backup of biztalk app before undeploying...
-		backup-BiztalkApp $btdfBiztalkAppName $backupdir
+		backup-BiztalkApp $biztalkAppName $backupdir
 
 		#Check if biztalk app can be undeployed using BTDF undeploy. If BTDF undeploy not found, undeploy using BTSTask.exe
-		$appUninstallCmd = Get-AppUninstallCommand $btdfBiztalkAppName
+		$appUninstallCmd = Get-AppUninstallCommand $btdfProductName
         if ($appUninstallCmd -eq $null){
-            write-host No older version of  $btdfBiztalkAppName found. Nothing to undeploy
+            write-host No older version of  $btdfProductName found. Nothing to undeploy
 
 			 #BTDF undeploy not found, undeploy using BTSTask.exe
-            if (test-biztalkAppExists $btdfBiztalkAppName){
+            if (test-biztalkAppExists $biztalkAppName){
                 write-warning "No Btdf command to undeploy exists. Using Bts task to remove app"
-                Remove-BiztalkApp $btdfBiztalkAppName
+                Remove-BiztalkApp $biztalkAppName
             }
             return
         }
 		
         
         #undeploy using btdf undeploy  		
-		$undeployShortCut = get-btdfUndeployShortcut $btdfBiztalkAppName
+		$undeployShortCut = get-btdfUndeployShortcut $btdfProductName
 		write-host Found shortcut for undeploying app $undeployShortCut
         $installDirStartIn = $(get-shortcutProperties $undeployShortCut).StartIn
 		$projectFile = get-btdfProjectFileName  $undeployShortCut
@@ -435,7 +448,7 @@ function  undeploy-btdfBiztalkApp(){
 				run-command "cmd" $arg
 		}
                      
-        Write-Host Application $BiztalkAppName  undeployed 
+        Write-Host Application $biztalkAppName  undeployed 
     
 
     }
@@ -449,18 +462,18 @@ function  uninstall-btdfBiztalkApp(){
 	[CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
-    [string]$BiztalkAppName
+    [string]$btdfProductName
 
     )
 
-    Write-Host Uninstalling biztalk app $BiztalkAppName .......
+    Write-Host Uninstalling biztalk app $btdfProductName .......
     try{
       
 		#Get command to uninstall
-        $appUninstallCmd = Get-AppUninstallCommand $BiztalkAppName
+        $appUninstallCmd = Get-AppUninstallCommand $btdfProductName
         
         if ($appUninstallCmd -eq $null){
-            write-host No older version of $BiztalkAppName found. Nothing to uninstall
+            write-host No older version of $btdfProductName found. Nothing to uninstall
             return
         }
         $appUninstallCmd= [string]  $appUninstallCmd
@@ -484,7 +497,7 @@ function  uninstall-btdfBiztalkApp(){
         }
       
         
-        Write-Host Application $BiztalkAppName  uninstalled 
+        Write-Host Application $btdfProductName  uninstalled 
     
 
     }
@@ -612,7 +625,8 @@ function run-command(){
     )
         $stdErrLog = [System.IO.Path]::GetTempFileName()
         $stdOutLog = [System.IO.Path]::GetTempFileName()
-        write-host Executing command ... $commandToStart  $arguments 
+        Write-Host Executing command ... $commandToStart 
+        Write-Debug "Executing command ... $commandToStart  $arguments" 
 		
 		$process  = Start-Process $commandToStart -ArgumentList $arguments  -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru 
 		Get-Content $stdOutLog |Write-Host
