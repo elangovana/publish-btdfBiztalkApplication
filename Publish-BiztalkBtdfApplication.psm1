@@ -39,10 +39,15 @@
     
 
 .EXAMPLE 
-     To run this script with the awesome whatif switch
+     
     publish-btdfBiztalkApplication  -whatif
-  
 
+    To run this script with the awesome whatif switch
+  
+.EXAMPLE 
+    
+    publish-btdfBiztalkApplication  -verbose
+    To run this script with increased logging use the -verbose switch
 
 #>
 function publish-btdfBiztalkApplication(){
@@ -105,14 +110,15 @@ Param(
 #############Main###########################
 
 $ErrorActionPreference = "Stop"
-$VerbosePreference = "Continue"
-$DebugPreference="Continue"
+
+
 
 $script:btsTaskPath = $btsTaskPath 
-
+$script:loglevel = get-loglevel 
     try{
-        Write-Debug "Debug mode in on.. Please note that senstive information such as passwords may be logged in clear text"
+        Write-verbose "Debug mode in on.. Please note that senstive information such as passwords may be logged in clear text"
         
+       
         if ($uninstallExistingVersion){   
             Write-Host Step : Umdeploying existing biztalk app $BiztalkBtdfApp   
             undeploy-btdfBiztalkApp  -biztalkAppName $biztalkApplicationName -btdfProductName $btdfProductName -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir 
@@ -139,8 +145,36 @@ $script:btsTaskPath = $btsTaskPath
 }
 
 
+function get-loglevel(){
+  if ( $PSCmdlet.MyInvocation.BoundParameters["Debug"].IsPresent) {return 2}
+  if ( $PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {return 3}
 
+  return 1
+}
 
+function get-msbuildloglevel(){
+  Param(
+    [Parameter(Mandatory=$True)]
+     [int]$loglevel
+  )
+
+  if ($loglevel -ge 3) {return "diag"}
+  if ($loglevel -ge 2) {return "detailed"}
+
+  return "normal"
+}
+
+function get-msiexecloglevel(){
+  Param(
+    [Parameter(Mandatory=$True)]
+     [int]$loglevel
+  )
+
+  if ($loglevel -ge 3) {return "x"}
+  if ($loglevel -ge 2) {return "v"}
+
+  return "*"
+}
 
 function flatten-keyValues(){
 Param(
@@ -299,7 +333,8 @@ function   install-btdfBiztalkApp(){
     $stdOutLog = [System.IO.Path]::GetTempFileName()
     $additionalInstallProperties = flatten-keyValues $installOptions
     try{
-		 $args = @("/c msiexec /i ""$BiztalkAppMSI"" /q /lv  $stdOutLog INSTALLDIR=""$installDir"" $additionalInstallProperties ") 
+         $msiloglevel = get-msiexecloglevel $script:loglevel 
+		 $args = @("/c msiexec /i ""$BiztalkAppMSI"" /q /l$msiloglevel  $stdOutLog INSTALLDIR=""$installDir"" $additionalInstallProperties ") 
          
 		#what if check
 		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $args")){
@@ -362,7 +397,8 @@ function  deploy-btdfBiztalkApp(){
         $addtionalDeployOptions = flatten-keyValues $deployOptionsNameValuePairs
 
         $stdErrorLog = [System.IO.Path]::GetTempFileName()
-        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}"" /p:Interactive=False  /t:Deploy /clp:NoSummary /nologo   /tv:4.0 {2} /v:diag /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installStartInDir,$msbuildExePath, $projectFile, $isLastBiztalkServer, $addtionalDeployOptions))
+        $msbuildloglevel = get-msbuildloglevel $script:loglevel 
+        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}"" /p:Interactive=False  /t:Deploy /clp:NoSummary /nologo   /tv:4.0 {2} /v:{5} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installStartInDir,$msbuildExePath, $projectFile, $isLastBiztalkServer, $addtionalDeployOptions, $msbuildloglevel))
        
 		run-command "cmd" $arg
         
@@ -438,9 +474,9 @@ function  undeploy-btdfBiztalkApp(){
 		
 
         $addtionalunDeployOptions = flatten-keyValues $undeployOptionsNameValuePairs
-
+        $msbuildloglevel = get-msbuildloglevel $script:loglevel 
         $stdErrorLog = [System.IO.Path]::GetTempFileName()
-        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}""  /p:Interactive=False  /t:Undeploy /clp:NoSummary /nologo    /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions))
+        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}""  /p:Interactive=False  /t:Undeploy /clp:NoSummary /nologo  /verbosity:{5}  /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions, $msbuildloglevel))
         
       
 		#what if check
@@ -626,7 +662,7 @@ function run-command(){
         $stdErrLog = [System.IO.Path]::GetTempFileName()
         $stdOutLog = [System.IO.Path]::GetTempFileName()
         Write-Host Executing command ... $commandToStart 
-        Write-Debug "Executing command ... $commandToStart  $arguments" 
+        Write-verbose "Executing command ... $commandToStart  $arguments" 
 		
 		$process  = Start-Process $commandToStart -ArgumentList $arguments  -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru 
 		Get-Content $stdOutLog |Write-Host
