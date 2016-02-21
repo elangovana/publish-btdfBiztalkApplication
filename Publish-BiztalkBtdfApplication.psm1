@@ -105,7 +105,7 @@ Param(
     #This is the BtsTaskPath. 
     [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
 
-    #This is the msbuild path.  Please make sure the path is quoted correctly, to ensure that the path with spaces is enclosed within quotes.
+    #This is the msbuild path.  
     [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
    
 
