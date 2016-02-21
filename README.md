@@ -49,7 +49,7 @@ Customises the paths of msbuild and btstask
 Step 1: Download this module and import into octopus deploy as shown in http://docs.octopusdeploy.com/display/OD/Script+Modules
  
 
-Step 2: Script
+Step 2: Script - Sample application deployment
 
       #Import-Module .\Publish-BiztalkBtdfApplication.psm1 -Force
       ##Get MSI from nuget package. 
@@ -95,4 +95,7 @@ Step 2: Script
       #publish-BTDFBiztalkApplication –verbose
 
 
-
+##EXAMPLE 6  - To see more details, get-help
+         
+         get-help publish-BTDFBiztalkApplication -full
+         
