@@ -85,7 +85,7 @@ Param(
     [boolean] $importIntoBiztalkMgmtDb=$true,
    
 
-    #This is a hash table of key-value pairs of deploy options that the BTDF deploy UI walks you through. This hash table of custom variables must contain all variables specified in the install.xml of your BTDF project, including the port bindings file.
+    #This is a hash table of key-value pairs of deploy options that the BTDF deploy UI walks you through. This hash table of custom variables must contain all variables specified in the installwizard.xml of your BTDF project, including the port bindings file.
     #At a bare minimum you will need to specify the port bindings file. Please makes sure that the values with spaces are quoted correctly, for further details see examples
     #Note: There is no need to specify the default variable BT_DEPLOY_MGMT_DB in here, as it is already captured as part of $importIntoBiztalkMgmtDb
     [Parameter(Mandatory=$True)]
@@ -95,7 +95,7 @@ Param(
     [hashtable]$installOptions = $NULL,
     
 
-    #This is a keyvalue pairs of deploy options. This is a list of key value pairs for all custom variables specified in the uninstall.xml of your BTDF project.
+    #This is a keyvalue pairs of deploy options. This is a list of key value pairs for all custom variables specified in the uninstallwizard.xml of your BTDF project.
     #Note: There is no need to specify the default variable BT_DEPLOY_MGMT_DB in here, as it is already captured as part of $importIntoBiztalkMgmtDb 
     [hashtable]$undeployOptions = $NULL,
 
