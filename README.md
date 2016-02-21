@@ -95,7 +95,7 @@ Step 2: Script - Sample application deployment
       #publish-BTDFBiztalkApplication –verbose
 
 
-##EXAMPLE 6  - To see more details, get-help
+##EXAMPLE 6  - To see more details, get help!
          
          get-help publish-BTDFBiztalkApplication -full
          
