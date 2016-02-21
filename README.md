@@ -42,6 +42,7 @@ To run this script with increased log level for troublehooting, use the verbose 
 
 ##EXAMPLE 4 - Customise Msbuild and BtsTask paths
 Customises the paths of msbuild and btstask 
+
          publish-btdfBiztalkApplication  -msbuildPath "C:\Program Files (x86)\MSBuild\12.0\Bin\msbuild.exe" -btsTaskPath "$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
 
 ##EXAMPLE 5 - Octopus Deploy
