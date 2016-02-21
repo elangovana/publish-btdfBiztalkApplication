@@ -49,11 +49,16 @@
     publish-btdfBiztalkApplication  -verbose
     To run this script with increased logging use the -verbose switch
 
+.EXAMPLE 
+    publish-btdfBiztalkApplication  -msbuildPath "C:\Program Files (x86)\MSBuild\12.0\Bin\msbuild.exe" -btsTaskPath "$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
+    Customises the paths of msbuild and btstask 
+
 #>
-function publish-btdfBiztalkApplication(){
+function Publish-BTDFBiztalkApplication(){
 
 [CmdletBinding(SupportsShouldProcess=$True)]
 Param(
+
     # The path of biztalk MSI created using BTDF
     [Parameter(Mandatory=$True)]
     [string] $biztalkMsi, 
@@ -97,10 +102,10 @@ Param(
     #When set to true uninstalls existing version. 
     [boolean]$uninstallExistingVersion = $True,
 
-    #This is the BtsTaskPath. Please make sure the path is quoted correctly.
-    [string]$btsTaskPath="$env:systemdrive\""Program Files (x86)""\""Microsoft BizTalk Server 2013 R2""\BtsTask.exe",
+    #This is the BtsTaskPath. 
+    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
 
-    #This is the msbuild path.
+    #This is the msbuild path.  Please make sure the path is quoted correctly, to ensure that the path with spaces is enclosed within quotes.
     [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
    
 
@@ -459,7 +464,7 @@ function  undeploy-btdfBiztalkApp(){
 
 			 #BTDF undeploy not found, undeploy using BTSTask.exe
             if (test-biztalkAppExists $biztalkAppName){
-                write-warning "No Btdf command to undeploy exists. Using Bts task to remove app"
+                write-warning "No Btdf command to undeploy this product $btdfProductName exists, but the biztalk application $biztalkAppName exists..  Using Btstask instead to remove app $biztalkAppName..."
                 Remove-BiztalkApp $biztalkAppName
             }
             return
@@ -562,7 +567,7 @@ function  backup-BiztalkApp(){
 		$packageBindingsPath = Join-Path $backupdir ([system.string]::Format("{0}{1}",$templateFileName, ".xml"))
 
         #use bts task to export app MSI
-        $exportMsiCmd = @([System.String]::Format("/c {0}  exportapp    /ApplicationName:""{1}""  /Package:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageMsiPath))
+        $exportMsiCmd = @([System.String]::Format("/c echo Exporting biztalk MSI using btsTask.. & ""{0}""  exportapp    /ApplicationName:""{1}""  /Package:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageMsiPath))
       
 		#whatif 
 		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportMsiCmd")){
@@ -571,7 +576,7 @@ function  backup-BiztalkApp(){
        
 
         #use bts task to export app MSI
-        $exportBindingsCmd = @([System.String]::Format("/c {0}  exportBindings    /ApplicationName:""{1}""  /Destination:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageBindingsPath))
+        $exportBindingsCmd = @([System.String]::Format("/c echo Exporting biztalk bindings using btsTask..& ""{0}""  exportBindings    /ApplicationName:""{1}""  /Destination:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageBindingsPath))
 
 		#whatif
 		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportBindingsCmd")){
@@ -603,7 +608,7 @@ function  Remove-BiztalkApp(){
 
 		
         #use bts task to export app and bindings
-        $removeAppCmd = @([System.String]::Format("/c {0}  removeapp    /ApplicationName:""{1}"" ",$BtsTaskPath,$BiztalkAppName))
+        $removeAppCmd = @([System.String]::Format("/c echo Removing biztalk app using btstask... & ""{0}""  removeapp    /ApplicationName:""{1}"" ",$BtsTaskPath,$BiztalkAppName))
        
 
         if ($pscmdlet.ShouldProcess("$env:computername", "$removeAppCmd")){
@@ -629,7 +634,7 @@ function test-biztalkAppExists(){
 		
         #use bts task to export app and bindings
 	    $stdOutLog = [System.IO.Path]::GetTempFileName()
-        $ListBiztalkAppCmd = [System.String]::Format("/c {0}  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
+        $ListBiztalkAppCmd = [System.String]::Format("/c echo Getting list of biztalk apps using BTSTask & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
         
 		
 		
