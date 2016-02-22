@@ -64,8 +64,8 @@ Param(
     [string] $biztalkMsi, 
 
     # The directory into which the MSI needs to be installed
-	[Parameter(Mandatory=$True)]
-	[string]$installdir ,
+    [Parameter(Mandatory=$True)]
+    [string]$installdir ,
     
     #The name of the BTDF product name as specified in the btdf project file property <ProductName>..</ProductName>
     [Parameter(Mandatory=$True)]
@@ -81,7 +81,7 @@ Param(
     $backupDir,
 
     #This option is useful for deploying in clustered biztalk server environments. Set this to false when installing on all servers except the last one within the clustered environment. 
-	[Parameter(Mandatory=$True)]
+    [Parameter(Mandatory=$True)]
     [boolean] $importIntoBiztalkMgmtDb=$true,
    
 
@@ -128,14 +128,14 @@ $script:loglevel = get-loglevel
             Write-Host Step : Umdeploying existing biztalk app $BiztalkBtdfApp   
             undeploy-btdfBiztalkApp  -biztalkAppName $biztalkApplicationName -btdfProductName $btdfProductName -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir 
 
-	        Write-Host Step  Uninstalling existing biztalk app $BiztalkBtdfApp   
+            Write-Host Step  Uninstalling existing biztalk app $BiztalkBtdfApp   
             uninstall-btdfBiztalkApp $btdfProductName  
         }
 
-	    Write-Host Step : Installing  biztalk msi $BiztalkMsi
+        Write-Host Step : Installing  biztalk msi $BiztalkMsi
         install-btdfBiztalkApp  $BiztalkMsi -installDir $installdir  -installOptions $installOptions
 
-	    Write-Host Step : Deploying biztalk app $btdfProductName   
+        Write-Host Step : Deploying biztalk app $btdfProductName   
         deploy-btdfBiztalkApp -btdfProductName $btdfProductName -isLastBiztalkServer $ImportIntoBiztalkMgmtDb -msbuildExePath $msbuildPath -deployOptionsNameValuePairs $deployOptions 
  
   
@@ -151,10 +151,11 @@ $script:loglevel = get-loglevel
 
 
 function get-loglevel(){
-  if ( $PSCmdlet.MyInvocation.BoundParameters["Debug"].IsPresent) {return 2}
-  if ( $PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {return 3}
 
-  return 1
+    if ( $PSCmdlet.MyInvocation.BoundParameters["Debug"].IsPresent) {return 2}
+    if ( $PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {return 3}
+
+    return 1
 }
 
 function get-msbuildloglevel(){
@@ -163,8 +164,8 @@ function get-msbuildloglevel(){
      [int]$loglevel
   )
 
-  if ($loglevel -ge 3) {return "diag"}
-  if ($loglevel -ge 2) {return "detailed"}
+    if ($loglevel -ge 3) {return "diag"}
+    if ($loglevel -ge 2) {return "detailed"}
 
   return "normal"
 }
@@ -175,10 +176,10 @@ function get-msiexecloglevel(){
      [int]$loglevel
   )
 
-  if ($loglevel -ge 3) {return "x"}
-  if ($loglevel -ge 2) {return "v"}
+    if ($loglevel -ge 3) {return "x"}
+    if ($loglevel -ge 2) {return "v"}
 
-  return "*"
+    return "*"
 }
 
 function flatten-keyValues(){
@@ -280,13 +281,13 @@ function get-btdfShortCut(){
 }
 
 
-function get-btdfProjectFileName(){	
+function get-btdfProjectFileName(){    
     param([Parameter(Mandatory=$True)]
     [string]$btdfDeployOrUndeployShortcutFileName)
 
-	if ( -not (Test-Path $btdfDeployOrUndeployShortcutFileName -PathType Leaf)){
-		write-error "The file $btdfDeployOrUndeployShortcutFileName not found"
-	}
+    if ( -not (Test-Path $btdfDeployOrUndeployShortcutFileName -PathType Leaf)){
+        write-error "The file $btdfDeployOrUndeployShortcutFileName not found"
+    }
 
     $shortcutObj = get-shortcutProperties $btdfDeployOrUndeployShortcutFileName
     
@@ -298,7 +299,7 @@ function get-btdfProjectFileName(){
         write-error "Could not find any project file matching regex $projectFileRegex in expression $shortcutObj.TargetArguments"
     }
 
-	return $projectFile
+    return $projectFile
 }
 
 function get-shortcutProperties(){
@@ -328,7 +329,7 @@ function get-shortcutProperties(){
 
 
 function   install-btdfBiztalkApp(){
-	
+    
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
@@ -344,12 +345,12 @@ function   install-btdfBiztalkApp(){
     $additionalInstallProperties = flatten-keyValues $installOptions
     try{
          $msiloglevel = get-msiexecloglevel $script:loglevel 
-		 $args = @("/c msiexec /i ""$BiztalkAppMSI"" /q /l$msiloglevel  $stdOutLog INSTALLDIR=""$installDir"" $additionalInstallProperties ") 
+         $args = @("/c msiexec /i ""$BiztalkAppMSI"" /q /l$msiloglevel  $stdOutLog INSTALLDIR=""$installDir"" $additionalInstallProperties ") 
          
-		#what if check
-		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $args")){
-				run-command "cmd" $args
-		}
+        #what if check
+        if ($pscmdlet.ShouldProcess("$env:computername", "cmd $args")){
+                run-command "cmd" $args
+        }
     }
     catch{
         
@@ -367,19 +368,19 @@ function   install-btdfBiztalkApp(){
 
 function  deploy-btdfBiztalkApp(){
 
-	[CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
     [string]$btdfProductName,
 
-	[Parameter(Mandatory=$True)]
+    [Parameter(Mandatory=$True)]
 
-	[boolean]$isLastBiztalkServer,
-	
+    [boolean]$isLastBiztalkServer,
+    
     [Parameter(Mandatory=$True)]
     [string]$msbuildExePath,
 
-	[hashtable]$deployOptionsNameValuePairs =$null
+    [hashtable]$deployOptionsNameValuePairs =$null
     )
 
     Write-Host Deploying biztalk app $btdfProductName .......
@@ -390,8 +391,8 @@ function  deploy-btdfBiztalkApp(){
         
         #extra check for whatif, when running without any version of the biztalk app installed 
         if (-not($pscmdlet.ShouldProcess("$env:computername", "deploy-btdfBiztalkApp"))){
-				  return
-		}
+                  return
+        }
            
 
         if ($appUninstallCmd -eq $null){
@@ -399,10 +400,10 @@ function  deploy-btdfBiztalkApp(){
           
         }
       
-		$deployShortCut = get-btdfdeployShortcut $btdfProductName
-		write-host Found shortcut for deploying app $deployShortCut
-		$projectFile = get-btdfProjectFileName  $deployShortCut
-		$installStartInDir = $(get-shortcutProperties $deployShortCut).StartIn
+        $deployShortCut = get-btdfdeployShortcut $btdfProductName
+        write-host Found shortcut for deploying app $deployShortCut
+        $projectFile = get-btdfProjectFileName  $deployShortCut
+        $installStartInDir = $(get-shortcutProperties $deployShortCut).StartIn
 
         $addtionalDeployOptions = flatten-keyValues $deployOptionsNameValuePairs
 
@@ -410,7 +411,7 @@ function  deploy-btdfBiztalkApp(){
         $msbuildloglevel = get-msbuildloglevel $script:loglevel 
         $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}"" /p:Interactive=False  /t:Deploy /clp:NoSummary /nologo   /tv:4.0 {2} /v:{5} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installStartInDir,$msbuildExePath, $projectFile, $isLastBiztalkServer, $addtionalDeployOptions, $msbuildloglevel))
        
-		run-command "cmd" $arg
+        run-command "cmd" $arg
         
        
         
@@ -427,7 +428,7 @@ function  deploy-btdfBiztalkApp(){
 
 function  undeploy-btdfBiztalkApp(){
 
-	[CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
     [string]$biztalkAppName,
@@ -436,15 +437,15 @@ function  undeploy-btdfBiztalkApp(){
     [string]$btdfProductName,
 
     [Parameter(Mandatory=$True)]
-	[boolean]$isFirstBiztalkServer,
-	
+    [boolean]$isFirstBiztalkServer,
+    
     [Parameter(Mandatory=$True)]
     [string]$backupdir,
 
     [Parameter(Mandatory=$True)]
     [string]$msbuildExePath,
 
-	[hashtable]$undeployOptionsNameValuePairs = $null
+    [hashtable]$undeployOptionsNameValuePairs = $null
 
     
     )
@@ -453,35 +454,35 @@ function  undeploy-btdfBiztalkApp(){
     try{
 
        #check if biztalk app exists, els do nothing and return
-		if (-not(test-biztalkAppExists $biztalkAppName)){
+        if (-not(test-biztalkAppExists $biztalkAppName)){
 
-			write-host "The application $biztalkAppName does not exist on the biztalk sever. Nothing to undeploy"
-			return
+            write-host "The application $biztalkAppName does not exist on the biztalk sever. Nothing to undeploy"
+            return
          }
 
-		#Take a backup of biztalk app before undeploying...
-		backup-BiztalkApp $biztalkAppName $backupdir
+        #Take a backup of biztalk app before undeploying...
+        backup-BiztalkApp $biztalkAppName $backupdir
 
-		#Check if biztalk app can be undeployed using BTDF undeploy. If BTDF undeploy not found, undeploy using BTSTask.exe
-		$appUninstallCmd = Get-AppUninstallCommand $btdfProductName
+        #Check if biztalk app can be undeployed using BTDF undeploy. If BTDF undeploy not found, undeploy using BTSTask.exe
+        $appUninstallCmd = Get-AppUninstallCommand $btdfProductName
         if ($appUninstallCmd -eq $null){
             write-host No older version of  $btdfProductName found. Nothing to undeploy
 
-			 #BTDF undeploy not found, undeploy using BTSTask.exe
+             #BTDF undeploy not found, undeploy using BTSTask.exe
             if (test-biztalkAppExists $biztalkAppName){
                 write-warning "No Btdf command to undeploy this product $btdfProductName exists, but the biztalk application $biztalkAppName exists..  Using Btstask instead to remove app $biztalkAppName..."
                 Remove-BiztalkApp $biztalkAppName
             }
             return
         }
-		
         
-        #undeploy using btdf undeploy  		
-		$undeployShortCut = get-btdfUndeployShortcut $btdfProductName
-		write-host Found shortcut for undeploying app $undeployShortCut
+        
+        #undeploy using btdf undeploy          
+        $undeployShortCut = get-btdfUndeployShortcut $btdfProductName
+        write-host Found shortcut for undeploying app $undeployShortCut
         $installDirStartIn = $(get-shortcutProperties $undeployShortCut).StartIn
-		$projectFile = get-btdfProjectFileName  $undeployShortCut
-		
+        $projectFile = get-btdfProjectFileName  $undeployShortCut
+        
 
         $addtionalunDeployOptions = flatten-keyValues $undeployOptionsNameValuePairs
         $msbuildloglevel = get-msbuildloglevel $script:loglevel 
@@ -489,10 +490,10 @@ function  undeploy-btdfBiztalkApp(){
         $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}""  /p:Interactive=False  /t:Undeploy /clp:NoSummary /nologo  /verbosity:{5}  /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions, $msbuildloglevel))
         
       
-		#what if check
-		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $arg")){
-				run-command "cmd" $arg
-		}
+        #what if check
+        if ($pscmdlet.ShouldProcess("$env:computername", "cmd $arg")){
+                run-command "cmd" $arg
+        }
                      
         Write-Host Application $biztalkAppName  undeployed 
     
@@ -505,7 +506,7 @@ function  undeploy-btdfBiztalkApp(){
 
 function  uninstall-btdfBiztalkApp(){
 
-	[CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
     [Parameter(Mandatory=$True)]
     [string]$btdfProductName
@@ -515,7 +516,7 @@ function  uninstall-btdfBiztalkApp(){
     Write-Host Uninstalling biztalk app $btdfProductName .......
     try{
       
-		#Get command to uninstall
+        #Get command to uninstall
         $appUninstallCmd = Get-AppUninstallCommand $btdfProductName
         
         if ($appUninstallCmd -eq $null){
@@ -525,7 +526,7 @@ function  uninstall-btdfBiztalkApp(){
         $appUninstallCmd= [string]  $appUninstallCmd
        
         write-host uninstalling  $appUninstallCmd
-		
+        
 
       
         #use msi exec to remove using msi
@@ -533,10 +534,10 @@ function  uninstall-btdfBiztalkApp(){
         if ($index -gt -1){
             $msiUninstallCmd = $appUninstallCmd.Substring( $index)
            
-			#what if check
-			if ($pscmdlet.ShouldProcess("$env:computername", "$msiUninstallCmd")){
-				 run-command "cmd" "/c $msiUninstallCmd /quiet"
-			}
+            #what if check
+            if ($pscmdlet.ShouldProcess("$env:computername", "$msiUninstallCmd")){
+                 run-command "cmd" "/c $msiUninstallCmd /quiet"
+            }
            
         }else{
             Write-Error "Unable to find msiexec.exe uninstall command from the registry..."
@@ -553,7 +554,7 @@ function  uninstall-btdfBiztalkApp(){
 }
 
 function  backup-BiztalkApp(){
-	[CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param([Parameter(Mandatory=$True)]
     [string]$BiztalkAppName, 
     [Parameter(Mandatory=$True)]
@@ -562,31 +563,31 @@ function  backup-BiztalkApp(){
 
     Write-Host Backing up biztalk app $BiztalkAppName to $backupdir .......
     try{
-		if (-not( test-biztalkAppExists $BiztalkAppName)){
-			write-host $BiztalkAppName doesnt not exist. Nothing to backup
-			return
-		}
+        if (-not( test-biztalkAppExists $BiztalkAppName)){
+            write-host $BiztalkAppName doesnt not exist. Nothing to backup
+            return
+        }
 
-		$templateFileName = [system.string]::Format("{0}_{1}", $BiztalkAppName, $(Get-Date -Format yyyyMMddHHmmss) )
-		$packageMsiPath = Join-Path $backupdir ([system.string]::Format("{0}{1}",$templateFileName, ".msi"))
-		$packageBindingsPath = Join-Path $backupdir ([system.string]::Format("{0}{1}",$templateFileName, ".xml"))
+        $templateFileName = [system.string]::Format("{0}_{1}", $BiztalkAppName, $(Get-Date -Format yyyyMMddHHmmss) )
+        $packageMsiPath = Join-Path $backupdir ([system.string]::Format("{0}{1}",$templateFileName, ".msi"))
+        $packageBindingsPath = Join-Path $backupdir ([system.string]::Format("{0}{1}",$templateFileName, ".xml"))
 
         #use bts task to export app MSI
         $exportMsiCmd = @([System.String]::Format("/c echo Exporting biztalk MSI using btsTask.. & ""{0}""  exportapp    /ApplicationName:""{1}""  /Package:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageMsiPath))
       
-		#whatif 
-		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportMsiCmd")){
-				 run-command "cmd" $exportMsiCmd
-		}
+        #whatif 
+        if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportMsiCmd")){
+                 run-command "cmd" $exportMsiCmd
+        }
        
 
         #use bts task to export app MSI
         $exportBindingsCmd = @([System.String]::Format("/c echo Exporting biztalk bindings using btsTask..& ""{0}""  exportBindings    /ApplicationName:""{1}""  /Destination:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageBindingsPath))
 
-		#whatif
-		if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportBindingsCmd")){
-				 run-command "cmd" "$exportBindingsCmd"
-		}
+        #whatif
+        if ($pscmdlet.ShouldProcess("$env:computername", "cmd $exportBindingsCmd")){
+                 run-command "cmd" "$exportBindingsCmd"
+        }
        
         Write-Host Completed backing up $BiztalkAppName  
     
@@ -598,20 +599,20 @@ function  backup-BiztalkApp(){
 }
 
 function  Remove-BiztalkApp(){
-	[CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param([Parameter(Mandatory=$True)]
     [string]$BiztalkAppName
     )
 
     Write-Host Removing biztalk app $BiztalkAppName .......
     try{
-		#if app does not exist, nothing to do..
-		if (-not( test-biztalkAppExists $BiztalkAppName)){
-			write-host $BiztalkAppName doesnt not exist. Nothing to remove
-			return
-		}
+        #if app does not exist, nothing to do..
+        if (-not( test-biztalkAppExists $BiztalkAppName)){
+            write-host $BiztalkAppName doesnt not exist. Nothing to remove
+            return
+        }
 
-		
+        
         #use bts task to export app and bindings
         $removeAppCmd = @([System.String]::Format("/c echo Removing biztalk app using btstask... & ""{0}""  removeapp    /ApplicationName:""{1}"" ",$BtsTaskPath,$BiztalkAppName))
        
@@ -630,22 +631,22 @@ function  Remove-BiztalkApp(){
 }
 
 function test-biztalkAppExists(){
-	param([Parameter(Mandatory=$True)]
+    param([Parameter(Mandatory=$True)]
     [string]$BiztalkAppName)
 
 
-	Write-Host Checking if biztalk app $BiztalkAppName exists.......
+    Write-Host Checking if biztalk app $BiztalkAppName exists.......
     try{
-		
+        
         #use bts task to export app and bindings
-	    $stdOutLog = [System.IO.Path]::GetTempFileName()
+        $stdOutLog = [System.IO.Path]::GetTempFileName()
         $ListBiztalkAppCmd = [System.String]::Format("/c echo Getting list of biztalk apps using BTSTask & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
         
-		
-		
+        
+        
         run-command "cmd" $ListBiztalkAppCmd
 
-		$biztalkAppslist = gc $stdOutLog | Out-String
+        $biztalkAppslist = gc $stdOutLog | Out-String
 
         $appNameRegex = "-ApplicationName=""$BiztalkAppName"""
 
@@ -662,7 +663,7 @@ function test-biztalkAppExists(){
 }
 
 function run-command(){
-	
+    
     param(
     [Parameter(Mandatory=$True)]
     [string]$commandToStart, 
@@ -673,20 +674,20 @@ function run-command(){
         $stdOutLog = [System.IO.Path]::GetTempFileName()
         Write-Host Executing command ... $commandToStart 
         Write-verbose "Executing command ... $commandToStart  $arguments" 
-		
-		$process  = Start-Process $commandToStart -ArgumentList $arguments  -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru 
-		Get-Content $stdOutLog |Write-Host
+        
+        $process  = Start-Process $commandToStart -ArgumentList $arguments  -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru 
+        Get-Content $stdOutLog |Write-Host
         
         
-		#throw errors if any
-		$webdeployerrorsMessage = Get-Content $stdErrLog | Out-String
-		if (-not [string]::IsNullOrEmpty($webdeployerrorsMessage)) {throw $webdeployerrorsMessage}
+        #throw errors if any
+        $webdeployerrorsMessage = Get-Content $stdErrLog | Out-String
+        if (-not [string]::IsNullOrEmpty($webdeployerrorsMessage)) {throw $webdeployerrorsMessage}
 
-		write-host $commandToStart completed with exit code $process.ExitCode
+        write-host $commandToStart completed with exit code $process.ExitCode
        
-		if ($process.ExitCode -ne 0){
-			write-error "Script $commandToStart failed. see log for errors"
-		}
+        if ($process.ExitCode -ne 0){
+            write-error "Script $commandToStart failed. see log for errors"
+        }
 }
 
 
