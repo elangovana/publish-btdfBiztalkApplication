@@ -581,7 +581,7 @@ function  backup-BiztalkApp(){
         }
        
 
-        #use bts task to export app MSI
+        #use bts task to export app bindings
         $exportBindingsCmd = @([System.String]::Format("/c echo Exporting biztalk bindings using btsTask..& ""{0}""  exportBindings    /ApplicationName:""{1}""  /Destination:""{2}""",$BtsTaskPath,$BiztalkAppName,$packageBindingsPath))
 
         #whatif
@@ -613,7 +613,7 @@ function  Remove-BiztalkApp(){
         }
 
         
-        #use bts task to export app and bindings
+        #use bts task to remove app
         $removeAppCmd = @([System.String]::Format("/c echo Removing biztalk app using btstask... & ""{0}""  removeapp    /ApplicationName:""{1}"" ",$BtsTaskPath,$BiztalkAppName))
        
 
@@ -638,7 +638,7 @@ function test-biztalkAppExists(){
     Write-Host Checking if biztalk app $BiztalkAppName exists.......
     try{
         
-        #use bts task to export app and bindings
+        #use bts task to list apps
         $stdOutLog = [System.IO.Path]::GetTempFileName()
         $ListBiztalkAppCmd = [System.String]::Format("/c echo Getting list of biztalk apps using BTSTask & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
         
