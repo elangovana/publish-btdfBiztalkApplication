@@ -1,0 +1,77 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Default" ToolsVersion="4.0">
+  <PropertyGroup>
+    <PushToNugetServer Condition="'$(PushToNugetServer)' != '1'">0</PushToNugetServer>
+  </PropertyGroup>
+  <!-- Initial internal variables-->
+  <PropertyGroup>
+    <OutDir Condition="'$(OutDir)' == ''">.\tmp\</OutDir>
+    <CurrentDate>$([System.String]::Format("{0}{1}{2}",$([System.DateTime]::UtcNow.ToString(yy)), $([System.DateTime]::UtcNow.DayOfYear.ToString("000")), $([System.DateTime]::UtcNow.ToString(HHmm))))</CurrentDate>
+  </PropertyGroup>
+
+  <!--Project details-->
+  <PropertyGroup>
+    <NuspecPackageVersion Condition="'$(NuspecPackageVersion)' == ''">1.$(CurrentDate).0</NuspecPackageVersion>
+    <NuspecFile Condition="'$(NuspecFile)' == ''">.\publishbtdfbiztalkapplication.nuspec</NuspecFile>
+    <NugetPackageTempWorkingDirectory>$(OutDir)NugetPackage\</NugetPackageTempWorkingDirectory>
+    <NugetPackageTempObjDir>$(NugetPackageTempWorkingDirectory)Obj\</NugetPackageTempObjDir>
+    <NugetPackageTempBinDir>$(NugetPackageTempWorkingDirectory)bin\</NugetPackageTempBinDir>
+    <NugetExec>..\.nuget\nuget.exe</NugetExec>
+  </PropertyGroup>
+
+  <!--Nuget server details-->
+  <PropertyGroup>
+    <NugetServer Condition="'$(NugetServer)' == ''">https://www.nuget.org/packages/upload</NugetServer>
+    <NugetServerApiKey Condition="'$(NugetServerApiKey)' == ''"></NugetServerApiKey>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <ContentToPackage Include="..\Publish-BiztalkBtdfApplication.psm1"  />
+  </ItemGroup>
+
+  <Target Name="Default">
+    <CallTarget Targets="CreateNugetPackage" Condition="'$(PushToNugetServer)' == '0' "></CallTarget>
+    <CallTarget Targets="PushToNugetServer" Condition="'$(PushToNugetServer)' == '1' "></CallTarget>
+  </Target>
+
+
+  <Target Name="PushToNugetServer" DependsOnTargets="CreateNugetPackage" >
+    <Error Condition="'$(NugetServerApiKey)' == ''" Text="Please specify the nuget server api key to push using the property /p:NugetServerApiKey"/>
+    <ItemGroup>
+      <PackageFileToPush Include="$(NugetPackageTempBinDir)*$(NuspecPackageVersion).nupkg"> </PackageFileToPush>
+    </ItemGroup>
+    <Exec Command='$(NugetExec) push @(PackageFileToPush)  -ApiKey $(NugetServerApiKey) -Source $(NugetServer)' ></Exec>
+  </Target>
+
+  <Target Name="CreateNugetPackage" >
+    <!--
+    Set up nuget directories
+    ++++++++++Package
+    ++++++++++++++Content
+    -->
+    <ItemGroup>
+      <cleanupFiles Include="$(NugetPackageTempWorkingDirectory)**\*.*"></cleanupFiles>
+      <cleanupFiles Include="$(NugetPackageTempWorkingDirectory)*.*"></cleanupFiles>
+    </ItemGroup>
+    <Delete Files="@(cleanupFiles)" />
+    <RemoveDir Directories="$(NugetPackageTempWorkingDirectory)" />
+    <MakeDir Directories="$(NugetPackageTempObjDir);$(NugetPackageTempBinDir);"/>
+
+    <!--Copy files to package -->
+    <Copy SourceFiles="@(ContentToPackage)" DestinationFiles="@(ContentToPackage -> '$(NugetPackageTempObjDir)Content\%(RecursiveDir)%(Filename)%(Extension)') "/>
+    <Copy SourceFiles="$(NuspecFile)" DestinationFolder="$(NugetPackageTempObjDir)"/>
+ 
+   
+    <Exec Command='$(NugetExec) pack "$(NugetPackageTempObjDir)$(NuspecFile)" -OutputDirectory $(NugetPackageTempBinDir) -version $(NuspecPackageVersion)' ></Exec>
+    <ItemGroup>
+      <_packageFile Include="$(NugetPackageTempWorkingDirectory)*.nupkg"> </_packageFile>
+    </ItemGroup>
+    <!--Place the nuget package file in a directory expected by the push task -->
+    <Copy SourceFiles="@(_packageFile)" DestinationFolder='$(NugetPackageTempBinDir)'></Copy>
+
+  </Target>
+
+
+
+</Project>
+

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Publish-BtdfBiztalkApplication</id>
+    <version>1.0.0</version>
+    <authors>Lanax</authors>
+    <description>Powershell module to deploy BTDF biztalk application Msi for continous automated deployment. This script was tested with Biztalk 2013 R2 and BTDF 5.6RC</description>
+    <language>en-US</language>
+    <projectUrl>https://github.com/elangovana/publish-btdfBiztalkApplication</projectUrl>
+    <licenseUrl>https://github.com/elangovana/publish-btdfBiztalkApplication/blob/master/LICENSE</licenseUrl>
+  </metadata>
+</package>
