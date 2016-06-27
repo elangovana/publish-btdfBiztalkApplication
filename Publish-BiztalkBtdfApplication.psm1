@@ -589,10 +589,10 @@ function  undeploy-DependentBiztalkApps(){
 
         foreach($appToUndeploy in $dependentAppsToUndeploy){
             #Take a backup of biztalk app before undeploying...
-            Write-Host backing up $appToUndeploy to $backupdir
+            Write-verbose backing up $appToUndeploy to $backupdir
             backup-BiztalkApp $appToUndeploy $backupdir
 
-            Write-Host Removing dependent app $appToUndeploy
+            Write-verbose Removing dependent app $appToUndeploy
             Remove-BiztalkApp $appToUndeploy
             
         }
