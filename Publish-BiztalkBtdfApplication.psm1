@@ -181,7 +181,7 @@ $script:loglevel = get-loglevel
 
     unpublish-btdfBiztalkApplication   -biztalkApplicationName DeploymentFramework.Samples.BasicMasterBindings -BtdfProductName "Deployment Framework for BizTalk - BasicMasterBindings"   -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1  -undeployDependentApps 1
 
-    This uninstalls the  BTDF Biztalk application product "Deployment Framework for BizTalk - BasicMasterBindings" with biztalk app name  "DeploymentFramework.Samples.BasicMasterBindings". into install directory C:\program files\mybtdfMsi. The undeployDependentApps also undeploys an dependents apps
+    This uninstalls the  BTDF Biztalk application product "Deployment Framework for BizTalk - BasicMasterBindings" with biztalk app name  "DeploymentFramework.Samples.BasicMasterBindings".  The undeployDependentApps option also undeploys all dependents apps
  
      
 
@@ -268,12 +268,13 @@ function get-dependentbiztalkapps (){
         $managmentDbServer = get-biztalkManagementServer 
     }
 
-    $result = get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer
+    [System.Collections.ArrayList]$result = get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer
     #The result also contains the biztalk app name who dependents we are looking for..
     if ($result.Contains($biztalkAppName) -and  $result[$($result.Count -1)] -eq $biztalkAppName ) {
-        $result.Remove($biztalkAppName)
+        $tmp = $result.Remove($biztalkAppName)
     }
 
+    return $result
 }
 
 
@@ -510,7 +511,7 @@ function  deploy-btdfBiztalkApp(){
     [hashtable]$deployOptionsNameValuePairs =$null
     )
 
-    Write-Host Deploying biztalk app $btdfProductName .......
+    Write-Host ********Deploying biztalk app $btdfProductName .......
     try{
      
         $appUninstallCmd = Get-AppUninstallCommand $btdfProductName
@@ -564,7 +565,7 @@ function  undeploy-DependentBiztalkApps(){
     [Parameter(Mandatory=$True)]
     [string]$backupdir
     )
-    Write-Host Undeploying dependent apps for $btdfProductName .......
+    Write-Host ............Undeploying dependent apps for $biztalkAppName .......
     try{
 
        if (-not $isFirstBiztalkServer) {
@@ -583,7 +584,7 @@ function  undeploy-DependentBiztalkApps(){
 
         $dependentAppsToUndeploy = get-dependentbiztalkapps $biztalkAppName $mgmtServer
 
-        Write-Host Found dependent apps that must be undeployed..
+        Write-Host Found dependent apps that must be undeployed..$dependentAppsToUndeploy
         Write-host $($dependentAppsToUndeploy | Out-String)
 
         foreach($appToUndeploy in $dependentAppsToUndeploy){
@@ -591,8 +592,8 @@ function  undeploy-DependentBiztalkApps(){
             Write-Host backing up $appToUndeploy to $backupdir
             backup-BiztalkApp $appToUndeploy $backupdir
 
-            Write-Host Removing dependent app $biztalkAppName
-            Remove-BiztalkApp $biztalkAppName
+            Write-Host Removing dependent app $appToUndeploy
+            Remove-BiztalkApp $appToUndeploy
             
         }
 
@@ -629,7 +630,7 @@ function  undeploy-btdfBiztalkApp(){
     [boolean] $undeployDependentApps = $false
     )
 
-    Write-Host Undeploying  $btdfProductName .......
+    Write-Host ********Undeploying  $btdfProductName .......
     try{
 
        #check if biztalk app exists, els do nothing and return
@@ -710,7 +711,7 @@ function  uninstall-btdfBiztalkApp(){
 
     )
 
-    Write-Host Uninstalling biztalk app $btdfProductName .......
+    Write-Host  ********Uninstalling biztalk app $btdfProductName .......
     try{
       
         #Get command to uninstall
@@ -758,7 +759,7 @@ function  backup-BiztalkApp(){
     [string]$backupdir 
     )
 
-    Write-Host Backing up biztalk app $BiztalkAppName to $backupdir .......
+    Write-Host  ..........Backing up biztalk app $BiztalkAppName to $backupdir .......
     try{
         if (-not( test-biztalkAppExists $BiztalkAppName)){
             write-host $BiztalkAppName doesnt not exist. Nothing to backup
@@ -801,7 +802,7 @@ function  Remove-BiztalkApp(){
     [string]$BiztalkAppName
     )
 
-    Write-Host Removing biztalk app $BiztalkAppName .......
+    Write-Host  .........Removing biztalk app $BiztalkAppName .......
     try{
         #if app does not exist, nothing to do..
         if (-not( test-biztalkAppExists $BiztalkAppName)){
@@ -859,7 +860,7 @@ function test-biztalkAppExists(){
         
         #use bts task to list apps
         $stdOutLog = [System.IO.Path]::GetTempFileName()
-        $ListBiztalkAppCmd = [System.String]::Format("/c echo Getting list of biztalk apps using BTSTask & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
+        $ListBiztalkAppCmd = [System.String]::Format("/c echo  & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
         
         
         
