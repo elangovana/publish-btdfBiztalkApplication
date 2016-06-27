@@ -67,7 +67,7 @@ Param(
     [Parameter(Mandatory=$True)]
     [string]$installdir ,
     
-    #The name of the BTDF product name as specified in the btdf project file property <ProductName>..</ProductName>
+    #The name of the BTDF product name as specified in the btdf project file property <ProductName>..</ProductName>. 
     [Parameter(Mandatory=$True)]
     [string] $btdfProductName, 
 
@@ -106,13 +106,15 @@ Param(
     [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
 
     #This is the msbuild path.  
-    [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
+    [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe",
+
+    #This flag when set to true, undeploys all biztalk applications that are dependent on this app to be able to undeploy this app
+    [boolean] $undeployDependentApps = $false
+
+  
    
 
 )
-
-############################################
-#############Main###########################
 
 $ErrorActionPreference = "Stop"
 
@@ -125,11 +127,7 @@ $script:loglevel = get-loglevel
         
        
         if ($uninstallExistingVersion){   
-            Write-Host Step : Umdeploying existing biztalk app $BiztalkBtdfApp   
-            undeploy-btdfBiztalkApp  -biztalkAppName $biztalkApplicationName -btdfProductName $btdfProductName -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir 
-
-            Write-Host Step  Uninstalling existing biztalk app $BiztalkBtdfApp   
-            uninstall-btdfBiztalkApp $btdfProductName  
+            unpublish-btdfbiztalkapplication -btdfProductName $btdfProductName -biztalkApplicationName  $biztalkApplicationName -importIntoBiztalkMgmtDb $ImportIntoBiztalkMgmtDb  -msbuildPath $msbuildPath -backupdir $backupDir -undeployDependentApps $undeployDependentApps
         }
 
         Write-Host Step : Installing  biztalk msi $BiztalkMsi
@@ -145,6 +143,135 @@ $script:loglevel = get-loglevel
     }
     finally{
 
+    }
+
+}
+
+
+
+
+<#
+.SYNOPSIS
+    Undeploys biztalk applications created using Biztalk Deployment framework (BTDF)
+
+.DESCRIPTION
+    This script undeploys a biztalk MSI built using BTDF, through standard BTDF steps as follows
+        - Takes a backup of the existing version of biztalk app, if any, MSI and bindings into a specified backup dir
+        - Undeploys the existing version, if any, of biztalk app
+        - Uninstalls existing version of biztalk app, if any
+        - If there are other biztalk applications dependent on this app, then setting undeployDependentApps to true undeploys them too after taking a backup
+
+     
+    This script was tested with Biztalk 2013 R2 and BTDF Release 5.6 (Release Candidate)
+
+.INPUTS
+    None
+
+.OUTPUTS
+    None
+
+
+ .LINK
+    https://biztalkdeployment.codeplex.com/
+    https://biztalkdeployment.codeplex.com/releases/view/616874
+    http://thoughtsofmarcus.blogspot.com.au/2010/10/find-all-possible-parameters-for-msi.html
+
+
+.EXAMPLE 
+
+    unpublish-btdfBiztalkApplication   -biztalkApplicationName DeploymentFramework.Samples.BasicMasterBindings -BtdfProductName "Deployment Framework for BizTalk - BasicMasterBindings"   -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1  -undeployDependentApps 1
+
+    This uninstalls the  BTDF Biztalk application product "Deployment Framework for BizTalk - BasicMasterBindings" with biztalk app name  "DeploymentFramework.Samples.BasicMasterBindings". into install directory C:\program files\mybtdfMsi. The undeployDependentApps also undeploys an dependents apps
+ 
+     
+
+.EXAMPLE 
+     
+    unpublish-btdfBiztalkApplication  -whatif
+
+    To run this script with the awesome whatif switch
+  
+.EXAMPLE 
+    
+    unpublish-btdfBiztalkApplication  -verbose
+    To run this script with increased logging use the -verbose switch
+
+.EXAMPLE 
+    unpublish-btdfBiztalkApplication  -msbuildPath "C:\Program Files (x86)\MSBuild\12.0\Bin\msbuild.exe" -btsTaskPath "$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
+    Customises the paths of msbuild and btstask 
+
+#>
+function unpublish-btdfbiztalkapplication(){
+Param(
+   
+    #The name of the BTDF product name as specified in the btdf project file property <ProductName>..</ProductName>. 
+    [Parameter(Mandatory=$True)]
+    [string] $btdfProductName, 
+
+     #The name of the biztalk application. This must match the name of the biztalk application the msi creates.
+    [Parameter(Mandatory=$True)]
+    [string] $biztalkApplicationName, 
+
+
+    #The backup directory into which an existing Biztalk application, if any, will be backed up to
+    [Parameter(Mandatory=$True)]
+    $backupDir,
+
+    #This option is useful for deploying in clustered biztalk server environments. Set this to false when installing on all servers except the last one within the clustered environment. 
+    [Parameter(Mandatory=$True)]
+    [boolean] $importIntoBiztalkMgmtDb=$true,
+   
+
+    #This is a keyvalue pairs of deploy options. This is a list of key value pairs for all custom variables specified in the uninstallwizard.xml of your BTDF project.
+    #Note: There is no need to specify the default variable BT_DEPLOY_MGMT_DB in here, as it is already captured as part of $importIntoBiztalkMgmtDb 
+    [hashtable]$undeployOptions = $NULL,
+
+ 
+    #This is the BtsTaskPath. 
+    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
+
+    #This is the msbuild path.  
+    [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe",
+
+    #This flag when set to true, undeploys all biztalk applications that are dependent on this app to be able to undeploy this app
+    [boolean] $undeployDependentApps = $false
+
+)
+    $ErrorActionPreference = "Stop"
+
+    $script:btsTaskPath = $btsTaskPath 
+    $script:loglevel = get-loglevel 
+
+    Write-Host Step : Umdeploying existing biztalk app $BiztalkBtdfApp   
+    undeploy-btdfBiztalkApp  -biztalkAppName $biztalkApplicationName -btdfProductName $btdfProductName -isFirstBiztalkServer $ImportIntoBiztalkMgmtDb  -msbuildExePath $msbuildPath -backupdir $backupDir -undeployDependentApps $undeployDependentApps
+
+    Write-Host Step  Uninstalling existing biztalk app $BiztalkBtdfApp   
+    uninstall-btdfBiztalkApp $btdfProductName  
+
+}
+
+
+function get-dependentbiztalkapps (){
+    param(
+     [Parameter(Mandatory=$True)]
+     [string] $biztalkAppName,
+     [Parameter(Mandatory=$false)]
+     [string] $managmentDbServer = "",
+     #This is the BtsTaskPath. 
+     [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
+
+    )
+    $script:btsTaskPath = $btsTaskPath 
+
+    #if no sql server details are passed in attempt  to get this through btstask
+    if ([string]::IsNullOrEmpty( $managmentDbServer)){
+        $managmentDbServer = get-biztalkManagementServer 
+    }
+
+    $result = get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer
+    #The result also contains the biztalk app name who dependents we are looking for..
+    if ($result.Contains($biztalkAppName) -and  $result[$($result.Count -1)] -eq $biztalkAppName ) {
+        $result.Remove($biztalkAppName)
     }
 
 }
@@ -409,7 +536,7 @@ function  deploy-btdfBiztalkApp(){
 
         $stdErrorLog = [System.IO.Path]::GetTempFileName()
         $msbuildloglevel = get-msbuildloglevel $script:loglevel 
-        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}"" /p:Interactive=False  /t:Deploy /clp:NoSummary /nologo   /tv:4.0 {2} /v:{5} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installStartInDir,$msbuildExePath, $projectFile, $isLastBiztalkServer, $addtionalDeployOptions, $msbuildloglevel))
+        $arg=@([System.String]::Format("/c @echo on & cd /d ""{0}"" & ""{1}"" /p:Interactive=False  /t:Deploy /clp:NoSummary /nologo   /tv:4.0 {2} /v:{5} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installStartInDir,$msbuildExePath, $projectFile, $isLastBiztalkServer, $addtionalDeployOptions, $msbuildloglevel))
        
         run-command "cmd" $arg
         
@@ -418,6 +545,58 @@ function  deploy-btdfBiztalkApp(){
         Write-Host Application $btdfBiztalkAppName  Deployed 
     
 
+    }
+    finally{
+         # do nothing
+    }
+}
+
+function  undeploy-DependentBiztalkApps(){
+
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+    [Parameter(Mandatory=$True)]
+    [string]$biztalkAppName,
+
+    [Parameter(Mandatory=$True)]
+    [boolean]$isFirstBiztalkServer,
+    
+    [Parameter(Mandatory=$True)]
+    [string]$backupdir
+    )
+    Write-Host Undeploying dependent apps for $btdfProductName .......
+    try{
+
+       if (-not $isFirstBiztalkServer) {
+            Write-Host "Not first biztalk server, no dependent apps to check. Exiting..."
+            return
+       }
+
+        #check if biztalk app exists, els do nothing and return
+        if (-not(test-biztalkAppExists $biztalkAppName)){
+
+            write-host "The application $biztalkAppName does not exist on the biztalk sever. Nothing to undeploy"
+            return
+         }
+
+        $mgmtServer = get-biztalkManagementServer 
+
+        $dependentAppsToUndeploy = get-dependentbiztalkapps $biztalkAppName $mgmtServer
+
+        Write-Host Found dependent apps that must be undeployed..
+        Write-host $($dependentAppsToUndeploy | Out-String)
+
+        foreach($appToUndeploy in $dependentAppsToUndeploy){
+            #Take a backup of biztalk app before undeploying...
+            Write-Host backing up $appToUndeploy to $backupdir
+            backup-BiztalkApp $appToUndeploy $backupdir
+
+            Write-Host Removing dependent app $biztalkAppName
+            Remove-BiztalkApp $biztalkAppName
+            
+        }
+
+        
     }
     finally{
          # do nothing
@@ -445,9 +624,9 @@ function  undeploy-btdfBiztalkApp(){
     [Parameter(Mandatory=$True)]
     [string]$msbuildExePath,
 
-    [hashtable]$undeployOptionsNameValuePairs = $null
+    [hashtable]$undeployOptionsNameValuePairs = $null,
 
-    
+    [boolean] $undeployDependentApps = $false
     )
 
     Write-Host Undeploying  $btdfProductName .......
@@ -460,6 +639,21 @@ function  undeploy-btdfBiztalkApp(){
             return
          }
 
+        #if forced undeploy, then deploy dependents apps
+        if ($undeployDependentApps){          
+            undeploy-DependentBiztalkApps $biztalkAppName $isFirstBiztalkServer $backupdir
+        }
+        else {
+            
+            $tmpDependantApps = get-dependentbiztalkapps $biztalkAppName
+            Write-Verbose "Dependent apps $tmpDependantApps"
+            if ($tmpDependantApps.Count -gt 0){
+                Write-Error "The biztalk application $biztalkAppName cannot be undeployed as there are other applications that depend on it. To undeploy dependent applications, set the undeployDependentApps option to true. Or manually remove the apps $tmpDependantApps "
+            }
+            
+        }
+
+
         #Take a backup of biztalk app before undeploying...
         backup-BiztalkApp $biztalkAppName $backupdir
 
@@ -470,8 +664,11 @@ function  undeploy-btdfBiztalkApp(){
 
              #BTDF undeploy not found, undeploy using BTSTask.exe
             if (test-biztalkAppExists $biztalkAppName){
-                write-warning "No Btdf command to undeploy this product $btdfProductName exists, but the biztalk application $biztalkAppName exists..  Using Btstask instead to remove app $biztalkAppName..."
-                Remove-BiztalkApp $biztalkAppName
+                 #remove app only if firstbiztalk server
+                   if ($isFirstBiztalkServer) {
+                        write-warning "No Btdf command to undeploy this product $btdfProductName exists, but the biztalk application $biztalkAppName exists..  Using Btstask instead to remove app $biztalkAppName..."
+                        Remove-BiztalkApp $biztalkAppName
+                   }
             }
             return
         }
@@ -487,7 +684,7 @@ function  undeploy-btdfBiztalkApp(){
         $addtionalunDeployOptions = flatten-keyValues $undeployOptionsNameValuePairs
         $msbuildloglevel = get-msbuildloglevel $script:loglevel 
         $stdErrorLog = [System.IO.Path]::GetTempFileName()
-        $arg=@([System.String]::Format("/c @echo on & cd ""{0}"" & ""{1}""  /p:Interactive=False  /t:Undeploy /clp:NoSummary /nologo  /verbosity:{5}  /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions, $msbuildloglevel))
+        $arg=@([System.String]::Format("/c @echo on & cd /d ""{0}"" & ""{1}""  /p:Interactive=False  /p:ContinueOnError=FALSE /t:Undeploy /clp:NoSummary /nologo  /verbosity:{5}  /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions, $msbuildloglevel))
         
       
         #what if check
@@ -630,6 +827,28 @@ function  Remove-BiztalkApp(){
     }
 }
 
+
+function get-biztalkManagementServer(){
+
+    param(
+    [string] $BiztalkTaskPath = $btsTaskPath
+    )
+    Write-Host Get Biztallk Management server
+
+    $exportedSettingsFile = [System.IO.Path]::GetTempFileName() + ".xml"
+    $exportBiztalkSettingsCmd = [System.String]::Format("/c echo Getting biztalk settings using BTSTask & ""{0}""  exportsettings -Destination:""{1}""",$BiztalkTaskPath, $exportedSettingsFile)
+  
+    run-command "cmd"  $exportBiztalkSettingsCmd
+
+    [xml]$XmlDocument = Get-Content -Path   $exportedSettingsFile        
+    [string]$server =     $XmlDocument.Settings.ExportedGroup
+    
+    Write-Host Exported group $server
+
+    return $server.Split(":")[0]
+}
+
+
 function test-biztalkAppExists(){
     param([Parameter(Mandatory=$True)]
     [string]$BiztalkAppName)
@@ -692,4 +911,99 @@ function run-command(){
 
 
 
+
+
+function get-dependentbiztalkappslevelone (){
+param(
+ [Parameter(Mandatory=$True)]
+[string] $biztalkAppName,
+
+[Parameter(Mandatory=$True)]
+[string] $managmentDbServer,
+
+[string] $managementdb="BizTalkMgmtDb"
+)
+      $cmd = " select appd.nvcName apps from bts_application app " +
+     " join bts_assembly ass on app.nID =  ass.nApplicationID  " +
+     " join [bts_libreference] lr on lr.idlib = ass.nID " +
+     " join bts_assembly assd on assd.nID = lr.idapp " +
+     " join bts_application appd on assd.nApplicationID = appd.nID " +
+     " where app.nvcName = '$biztalkAppName'  and app.nvcName != appd.nvcName" +
+     " union  " +
+     " select app.nvcName from bts_application app " +
+     " join bts_application_reference appr on appr.nApplicationID = app.nID " +
+     " join bts_application appd on appd.nID = appr.nReferencedApplicationID " +
+     "  where appd.nvcName = '$biztalkAppName' "
+
+     Write-Verbose  $cmd
+
+     If ( ! (Get-module "sqlps" )) { 
+        Import-Module "sqlps" -DisableNameChecking 
+     }
+   
+     $appsdatarow = Invoke-Sqlcmd -ServerInstance $managmentDbServer  -Query $cmd -Database $managementdb
+   
+     return [array] $appsdatarow.apps
+
+}
+
+function get-itemsnotinlist(){
+param(
+[Parameter(Mandatory=$True)]
+[array] $mainlist,
+[Parameter(Mandatory=$True)]
+[array] $sublist
+)
+    [System.Collections.ArrayList] $result = @()
+    foreach ($item in $sublist){
+        if (-not $mainlist.Contains($item)){
+            $result.Add($item)
+        }
+    }
+   
+    return $result
+}
+
+
+
+function get-dependentbiztalkappsrecurse (){
+param(
+ [Parameter(Mandatory=$True)]
+ [string] $biztalkAppName,
+ [Parameter(Mandatory=$True)]
+ [string] $managmentDbServer,
+ [System.Collections.ArrayList] $dependencylist = @()
+)
+
+    Write-verbose "Checking dependency for $biztalkAppName on server $managmentDbServer"   
+    $apps = dependentbiztalkappslevelone $biztalkAppName $managmentDbServer
+    Write-verbose  "Dependents for $biztalkAppName :   $apps"
+   
+    #No other apps depends on this one. Time to exit..
+    if ($apps -eq $null){
+       Write-verbose "Nothing depends on $biztalkAppName , current list $dependencylist"
+       if ($dependencylist.Contains($biztalkAppName) ) {return $dependencylist}
+
+       $tmp = $dependencylist.Add($biztalkAppName)
+       return  $dependencylist
+    }
+   
+    #Ok there are other apps that depend on this one. So recurse through the dependent list
+    foreach($app in $apps){
+       $moewdpends = get-dependentbiztalkappsrecurse $app $managmentDbServer $dependencylist
+       $appsToadd = get-itemsnotinlist $dependencylist $moewdpends 
+       if ($appsToadd.Count -gt 0){
+              $tmp =$dependencylist.AddRange($appsToadd)
+       }
+    }
+
+    #All depdencies added, now add the app to the list at the end
+    if (-not $dependencylist.Contains($biztalkAppName) ) { $tmp =$dependencylist.Add($biztalkAppName)}
+
+    return $dependencylist
+    
+}
+
+
 export-modulemember -function publish-btdfBiztalkApplication
+export-modulemember -function unpublish-btdfBiztalkApplication
