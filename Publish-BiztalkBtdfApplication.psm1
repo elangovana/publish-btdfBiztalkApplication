@@ -127,7 +127,7 @@ $script:loglevel = get-loglevel
         
        
         if ($uninstallExistingVersion){   
-            unpublish-btdfbiztalkapplication -btdfProductName $btdfProductName -biztalkApplicationName  $biztalkApplicationName -importIntoBiztalkMgmtDb $ImportIntoBiztalkMgmtDb  -msbuildPath $msbuildPath -backupdir $backupDir -undeployDependentApps $undeployDependentApps
+            unpublish-btdfbiztalkapplication -btdfProductName $btdfProductName -biztalkApplicationName  $biztalkApplicationName -importIntoBiztalkMgmtDb $ImportIntoBiztalkMgmtDb  -msbuildPath $msbuildPath -backupdir $backupDir -undeployDependentApps $undeployDependentApps -btsTaskPath $btsTaskPath
         }
 
         Write-Host Step : Installing  biztalk msi $BiztalkMsi
