@@ -582,20 +582,40 @@ function  undeploy-DependentBiztalkApps(){
 
         $mgmtServer = get-biztalkManagementServer 
 
+     
+
         $dependentAppsToUndeploy = get-dependentbiztalkapps $biztalkAppName $mgmtServer
+        
+
+        if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
+            Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
+        }
 
         Write-Host Found dependent apps that must be undeployed..$dependentAppsToUndeploy
         Write-host $($dependentAppsToUndeploy | Out-String)
 
+        # Make sure all backs up are done before removing apps
         foreach($appToUndeploy in $dependentAppsToUndeploy){
             #Take a backup of biztalk app before undeploying...
             Write-verbose "Backing up $appToUndeploy to $backupdir"
             backup-BiztalkApp $appToUndeploy $backupdir
 
+        }
+
+        foreach($app in $dependentAppsToUndeploy){
+            Write-verbose "stoppinh dependent app $appToUndeploy"
+            stop-biztalkapplication $app $mgmtServer
+        }
+
+        #remove apps
+        foreach($appToUndeploy in $dependentAppsToUndeploy){
+            #Take a backup of biztalk app before undeploying...
             Write-verbose "Removing dependent app $appToUndeploy"
             Remove-BiztalkApp $appToUndeploy
-            
+
         }
+           
+            
 
         
     }
@@ -640,16 +660,26 @@ function  undeploy-btdfBiztalkApp(){
             return
          }
 
+        #getDependant applications
+        $dependantApps = get-dependentbiztalkapps $biztalkAppName
+        $mgmtServer = get-biztalkManagementServer
+        $tmpAppsToCheckActiveInstances = $dependantApps + @($biztalkAppName)
+   
+        if (Test-MessagBoxInstances  $tmpAppsToCheckActiveInstances $mgmtServer){
+            Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
+        }
+
+        # all seems ok,, stop application..
+        stop-biztalkapplication $biztalkAppName $mgmtServer
+
         #if forced undeploy, then deploy dependents apps
         if ($undeployDependentApps){          
             undeploy-DependentBiztalkApps $biztalkAppName $isFirstBiztalkServer $backupdir
         }
-        else {
-            
-            $tmpDependantApps = get-dependentbiztalkapps $biztalkAppName
-            Write-Verbose "Dependent apps $tmpDependantApps"
-            if ($tmpDependantApps.Count -gt 0){
-                Write-Error "The biztalk application $biztalkAppName cannot be undeployed as there are other applications that depend on it. To undeploy dependent applications, set the undeployDependentApps option to true. Or manually remove the apps $tmpDependantApps "
+        else {                      
+            Write-Verbose "Dependent apps $dependantApps"
+            if ($dependantApps.Count -gt 0){
+                Write-Error "The biztalk application $biztalkAppName cannot be undeployed as there are other applications that depend on it. To undeploy dependent applications, set the undeployDependentApps option to true. Or manually remove the apps $dependantApps "
             }
             
         }
@@ -702,6 +732,35 @@ function  undeploy-btdfBiztalkApp(){
     }
 }
 
+
+function stop-biztalkapplication(){
+param(
+[Parameter(Mandatory=$True)]
+[string] $biztalkAppName,
+[Parameter(Mandatory=$True)]
+[string] $managmentDbServer,
+[string] $managementdb="BizTalkMgmtDb"
+)
+    #=== Make sure the ExplorerOM assembly is loaded ===#
+
+    [void] [System.reflection.Assembly]::LoadWithPartialName("Microsoft.BizTalk.ExplorerOM")
+    $Catalog = New-Object Microsoft.BizTalk.ExplorerOM.BtsCatalogExplorer
+    $Catalog.ConnectionString = "SERVER=$managmentDbServer;DATABASE=$managementdb;Integrated Security=SSPI"
+    #=== Connect the BizTalk Management database ===#
+
+    foreach($app in $Catalog.Applications){
+        if ($($app.Name) -ieq $biztalkAppName){
+            Write-Host Issuing stop command to $biztalkAppName..
+            $app.Stop([Microsoft.BizTalk.ExplorerOM.ApplicationStopOption] "StopAll")
+            $Catalog.SaveChanges()
+        }
+
+    }
+
+
+}
+
+
 function  uninstall-btdfBiztalkApp(){
 
     [CmdletBinding(SupportsShouldProcess=$true)]
@@ -749,6 +808,34 @@ function  uninstall-btdfBiztalkApp(){
     finally{
          # do nothing
     }
+}
+
+
+
+function Test-MessagBoxInstances(){
+[CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+    [Parameter(Mandatory=$True)]
+    [array]$biztalkApplications,
+    [Parameter(Mandatory=$True)]
+    [string] $biztalkMgmtBoxServer,
+    [string] $biztalkMgmtBoxDb = "BizTalkMgmtDb"
+    )
+    Add-Type -AssemblyName ('Microsoft.BizTalk.Operations, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL')
+   
+    $bo = New-Object Microsoft.BizTalk.Operations.BizTalkOperations $biztalkMgmtBoxServer, $biztalkMgmtBoxDb
+    $tmpServiceInstances = $bo.GetServiceInstances()
+    [System.Collections.ArrayList] $serviceInstances = @()
+    foreach ($instance in $tmpServiceInstances)
+    {
+        $tmp = $serviceInstances.Add($instance)
+    }
+    #TODO: case insensitice search  
+    [array ]$activeInstances = $serviceInstances | Where-Object {$biztalkApplications.Contains($_.Application) -and $_.Messages.Count -gt 0} | Group-Object Application,InstanceStatus,ServiceType |Select Name, Count
+    write-host Active Instances Count $activeInstances.Count: ($activeInstances | ft -auto| Out-String)
+
+    return $($activeInstances.Count -gt 0)
+
 }
 
 function  backup-BiztalkApp(){
