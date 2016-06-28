@@ -594,6 +594,16 @@ function  undeploy-DependentBiztalkApps(){
         Write-Host Found dependent apps that must be undeployed..$dependentAppsToUndeploy
         Write-host $($dependentAppsToUndeploy | Out-String)
 
+        foreach($app in $dependentAppsToUndeploy){
+            Write-verbose "stopping dependent app $appToUndeploy"
+            stop-biztalkapplication $app $mgmtServer
+        }
+
+        #just do one more check before backing up and removing apps
+         if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
+            Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
+        }
+
         # Make sure all backs up are done before removing apps
         foreach($appToUndeploy in $dependentAppsToUndeploy){
             #Take a backup of biztalk app before undeploying...
@@ -602,10 +612,7 @@ function  undeploy-DependentBiztalkApps(){
 
         }
 
-        foreach($app in $dependentAppsToUndeploy){
-            Write-verbose "stoppinh dependent app $appToUndeploy"
-            stop-biztalkapplication $app $mgmtServer
-        }
+     
 
         #remove apps
         foreach($appToUndeploy in $dependentAppsToUndeploy){
