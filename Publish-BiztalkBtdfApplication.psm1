@@ -843,7 +843,7 @@ function Test-MessagBoxInstances(){
     {
         $tmp = $serviceInstances.Add($instance)
     }
-    #TODO: case insensitice search  
+   
     [array ]$activeInstances = $serviceInstances | Where-Object {$biztalkApplications.Contains($_.Application) -and $_.Messages.Count -gt 0} | Group-Object Application,InstanceStatus,ServiceType |Select Name, Count
     write-host Active Instances Count $activeInstances.Count: ($activeInstances | ft -auto| Out-String)
 
@@ -982,37 +982,7 @@ function test-biztalkAppExists(){
 
 }
 
-function get-ProperBiztalkAppName(){
-    param([Parameter(Mandatory=$True)]
-    [string]$BiztalkAppName)
 
-
-    Write-Host Checking if biztalk app $BiztalkAppName exists.......
-    try{
-        
-        #use bts task to list apps
-        $stdOutLog = [System.IO.Path]::GetTempFileName()
-        $ListBiztalkAppCmd = [System.String]::Format("/c echo  & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
-        
-        
-        
-        run-command "cmd" $ListBiztalkAppCmd
-
-        $biztalkAppslist = gc $stdOutLog | Out-String
-
-        $appNameRegex = "-ApplicationName=""$BiztalkAppName"""
-
-        $appExists= $biztalkAppslist -match $appNameRegex
-
-        return $appExists
-    
-
-    }
-    finally{
-         # do nothing
-    }
-
-}
 
 function run-command(){
     
