@@ -679,7 +679,7 @@ function  undeploy-btdfBiztalkApp(){
         # all seems ok,, stop application..
         stop-biztalkapplication $biztalkAppName $mgmtServer
 
-        #if forced undeploy, then deploy dependents apps
+        #if forced undeploy, then undeploy dependents apps
         if ($undeployDependentApps){          
             undeploy-DependentBiztalkApps $biztalkAppName $isFirstBiztalkServer $backupdir
         }
@@ -741,13 +741,14 @@ function  undeploy-btdfBiztalkApp(){
 
 
 function stop-biztalkapplication(){
-param(
-[Parameter(Mandatory=$True)]
-[string] $biztalkAppName,
-[Parameter(Mandatory=$True)]
-[string] $managmentDbServer,
-[string] $managementdb="BizTalkMgmtDb"
-)
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+    [Parameter(Mandatory=$True)]
+    [string] $biztalkAppName,
+    [Parameter(Mandatory=$True)]
+    [string] $managmentDbServer,
+    [string] $managementdb="BizTalkMgmtDb"
+    )
     #=== Make sure the ExplorerOM assembly is loaded ===#
 
     [void] [System.reflection.Assembly]::LoadWithPartialName("Microsoft.BizTalk.ExplorerOM")
@@ -756,11 +757,16 @@ param(
     #=== Connect the BizTalk Management database ===#
 
     foreach($app in $Catalog.Applications){
+           
         if ($($app.Name) -ieq $biztalkAppName){
             Write-Host Issuing stop command to $biztalkAppName..
-            $app.Stop([Microsoft.BizTalk.ExplorerOM.ApplicationStopOption] "StopAll")
-            $Catalog.SaveChanges()
-        }
+            #What if support
+            if ($pscmdlet.ShouldProcess("$managmentDbServer\\$managementdb\\$biztalkAppName", "StopAll")){
+                 $app.Stop([Microsoft.BizTalk.ExplorerOM.ApplicationStopOption] "StopAll")
+                 $Catalog.SaveChanges()
+            }                     
+           
+        }#end of application match check
 
     }
 
@@ -945,6 +951,38 @@ function get-biztalkManagementServer(){
 
 
 function test-biztalkAppExists(){
+    param([Parameter(Mandatory=$True)]
+    [string]$BiztalkAppName)
+
+
+    Write-Host Checking if biztalk app $BiztalkAppName exists.......
+    try{
+        
+        #use bts task to list apps
+        $stdOutLog = [System.IO.Path]::GetTempFileName()
+        $ListBiztalkAppCmd = [System.String]::Format("/c echo  & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
+        
+        
+        
+        run-command "cmd" $ListBiztalkAppCmd
+
+        $biztalkAppslist = gc $stdOutLog | Out-String
+
+        $appNameRegex = "-ApplicationName=""$BiztalkAppName"""
+
+        $appExists= $biztalkAppslist -match $appNameRegex
+
+        return $appExists
+    
+
+    }
+    finally{
+         # do nothing
+    }
+
+}
+
+function get-ProperBiztalkAppName(){
     param([Parameter(Mandatory=$True)]
     [string]$BiztalkAppName)
 
