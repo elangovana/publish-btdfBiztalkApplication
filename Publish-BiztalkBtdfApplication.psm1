@@ -758,6 +758,8 @@ function stop-biztalkapplication(){
     [void] [System.reflection.Assembly]::LoadWithPartialName("Microsoft.BizTalk.ExplorerOM")
     $Catalog = New-Object Microsoft.BizTalk.ExplorerOM.BtsCatalogExplorer
     $Catalog.ConnectionString = "SERVER=$managmentDbServer;DATABASE=$managementdb;Integrated Security=SSPI"
+    $Catalog.Refresh()
+
     #=== Connect the BizTalk Management database ===#
 
     foreach($app in $Catalog.Applications){
@@ -768,6 +770,7 @@ function stop-biztalkapplication(){
             if ($pscmdlet.ShouldProcess("$managmentDbServer\\$managementdb\\$biztalkAppName", "StopAll")){
                  $app.Stop([Microsoft.BizTalk.ExplorerOM.ApplicationStopOption] "StopAll")
                  $Catalog.SaveChanges()
+                 $Catalog.Refresh()
             }                     
            
         }#end of application match check
