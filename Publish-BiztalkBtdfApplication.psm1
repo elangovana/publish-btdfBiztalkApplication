@@ -600,7 +600,7 @@ function  undeploy-DependentBiztalkApps(){
 
         foreach($app in $dependentAppsToUndeploy){
             Write-verbose "stopping dependent app $appToUndeploy"
-            stop-biztalkapplication $app $mgmtServer
+            stop-biztalkapplication $app $isFirstBiztalkServer $mgmtServer
         }
 
         #just do one more check before backing up and removing apps
@@ -681,7 +681,7 @@ function  undeploy-btdfBiztalkApp(){
         }
 
         # all seems ok,, stop application..
-        stop-biztalkapplication $biztalkAppName $mgmtServer
+        stop-biztalkapplication $biztalkAppName $isFirstBiztalkServer $mgmtServer
 
         #if forced undeploy, then undeploy dependents apps
         if ($undeployDependentApps){          
@@ -750,15 +750,22 @@ function stop-biztalkapplication(){
     [Parameter(Mandatory=$True)]
     [string] $biztalkAppName,
     [Parameter(Mandatory=$True)]
+    [boolean] $IsFirstBiztalkServer,
+    [Parameter(Mandatory=$True)]
     [string] $managmentDbServer,
     [string] $managementdb="BizTalkMgmtDb"
     )
     #=== Make sure the ExplorerOM assembly is loaded ===#
 
+    #Do nothing if  not the first biztalk server
+    if (-not $IsFirstBiztalkServer) {
+        return
+    }
+
     [void] [System.reflection.Assembly]::LoadWithPartialName("Microsoft.BizTalk.ExplorerOM")
     $Catalog = New-Object Microsoft.BizTalk.ExplorerOM.BtsCatalogExplorer
     $Catalog.ConnectionString = "SERVER=$managmentDbServer;DATABASE=$managementdb;Integrated Security=SSPI"
-    $Catalog.Refresh()
+    
 
     #=== Connect the BizTalk Management database ===#
 
@@ -770,7 +777,7 @@ function stop-biztalkapplication(){
             if ($pscmdlet.ShouldProcess("$managmentDbServer\\$managementdb\\$biztalkAppName", "StopAll")){
                  $app.Stop([Microsoft.BizTalk.ExplorerOM.ApplicationStopOption] "StopAll")
                  $Catalog.SaveChanges()
-                 $Catalog.Refresh()
+               
             }                     
            
         }#end of application match check
