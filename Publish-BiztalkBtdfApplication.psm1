@@ -347,7 +347,7 @@ function Get-AppUninstallCommand(){
     if ($app -ne $null){
        #more than one match for the app uninstall command.. Error case.. this script doesnt support this type of uninstall
        if ($app.Count -gt 1){
-            Write-Error "Multiple items matched when looking for uninstall command using app name HKLM:\Software\....\Microsoft\Windows\CurrentVersion\Uninstall\$appDisplayName*. $($app | Format-Table -Property DisplayName|Out-String)  This script does not currently support use cases where mutiple products with the same name prefix are found. "
+            Write-Error "Multiple items matched when looking for uninstall command using app name HKLM:\Software\....\Microsoft\Windows\CurrentVersion\Uninstall\$appDisplayName*. $($app |  ft -Property DisplayName,PSPath -Wrap | Out-String)  This script does not currently support use cases where mutiple products with the same name prefix are found. "
        }
        return $app.uninstallstring
 
