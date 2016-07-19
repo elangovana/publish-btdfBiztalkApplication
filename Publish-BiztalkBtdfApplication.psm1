@@ -268,13 +268,13 @@ function get-dependentbiztalkapps (){
         $managmentDbServer = get-biztalkManagementServer 
     }
 
-    [System.Collections.ArrayList]$result = get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer
+    [System.Collections.ArrayList] $result =[array] $( get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer)
     #The result also contains the biztalk app name who dependents we are looking for..
     if ($result.Contains($biztalkAppName) -and  $result[$($result.Count -1)] -eq $biztalkAppName ) {
         $tmp = $result.Remove($biztalkAppName)
     }
 
-    return $result
+    return [array]$result
 }
 
 
@@ -584,8 +584,12 @@ function  undeploy-DependentBiztalkApps(){
 
      
 
-        $dependentAppsToUndeploy = get-dependentbiztalkapps $biztalkAppName $mgmtServer
+       [array] $dependentAppsToUndeploy =[array] $(get-dependentbiztalkapps $biztalkAppName $mgmtServer)
         
+        if ($dependentAppsToUndeploy -eq $null -or $dependentAppsToUndeploy.Count -eq 0){
+            write-host "No dependant apps to undeploy.. exiting"
+            return
+        }
 
         if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
             Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
@@ -668,7 +672,7 @@ function  undeploy-btdfBiztalkApp(){
          }
 
         #getDependant applications
-        $dependantApps = get-dependentbiztalkapps $biztalkAppName
+        [array] $dependantApps = [array] $(get-dependentbiztalkapps $biztalkAppName)
         $mgmtServer = get-biztalkManagementServer
         $tmpAppsToCheckActiveInstances = $dependantApps + @($biztalkAppName)
    
@@ -1064,7 +1068,7 @@ param(
         }
     }
    
-    return $result
+    return [array] $result
 }
 
 
@@ -1085,10 +1089,10 @@ param(
     #No other apps depends on this one. Time to exit..
     if ($apps -eq $null){
        Write-verbose "Nothing depends on $biztalkAppName , current list $dependencylist"
-       if ($dependencylist.Contains($biztalkAppName) ) {return $dependencylist}
+       if ($dependencylist.Contains($biztalkAppName) ) {return [array] $dependencylist}
 
        $tmp = $dependencylist.Add($biztalkAppName)
-       return  $dependencylist
+       return [array] $dependencylist
     }
    
     #Ok there are other apps that depend on this one. So recurse through the dependent list
@@ -1103,7 +1107,7 @@ param(
     #All depdencies added, now add the app to the list at the end
     if (-not $dependencylist.Contains($biztalkAppName) ) { $tmp =$dependencylist.Add($biztalkAppName)}
 
-    return $dependencylist
+    return [array] $dependencylist
     
 }
 
