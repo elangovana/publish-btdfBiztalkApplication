@@ -469,7 +469,7 @@ function   install-btdfBiztalkApp(){
     [hashtable]$installOptions =$null
     )
 
-    $stdOutLog = [System.IO.Path]::GetTempFileName()
+    $stdOutLog =  Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
     $additionalInstallProperties = flatten-keyValues $installOptions
     try{
          $msiloglevel = get-msiexecloglevel $script:loglevel 
@@ -592,7 +592,7 @@ function  undeploy-DependentBiztalkApps(){
         }
 
         if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
-            Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
+            Write-Error "There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
         }
 
         Write-Host Found dependent apps that must be undeployed..$dependentAppsToUndeploy
@@ -725,7 +725,7 @@ function  undeploy-btdfBiztalkApp(){
 
         $addtionalunDeployOptions = flatten-keyValues $undeployOptionsNameValuePairs
         $msbuildloglevel = get-msbuildloglevel $script:loglevel 
-        $stdErrorLog = [System.IO.Path]::GetTempFileName()
+        $stdErrorLog =  Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
         $arg=@([System.String]::Format("/c @echo on & cd /d ""{0}"" & ""{1}""  /p:Interactive=False  /p:ContinueOnError=FALSE /t:Undeploy /clp:NoSummary /nologo  /verbosity:{5}  /tv:4.0 {2} /p:DeployBizTalkMgmtDB={3} /p:Configuration=Server {4}",  $installDirStartIn,$msbuildExePath , $projectFile, $isFirstBiztalkServer, $addtionalunDeployOptions, $msbuildloglevel))
         
       
@@ -950,7 +950,7 @@ function get-biztalkManagementServer(){
     )
     Write-Host Get Biztallk Management server
 
-    $exportedSettingsFile = [System.IO.Path]::GetTempFileName() + ".xml"
+    $exportedSettingsFile =  Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString() + ".xml")
     $exportBiztalkSettingsCmd = [System.String]::Format("/c echo Getting biztalk settings using BTSTask & ""{0}""  exportsettings -Destination:""{1}""",$BiztalkTaskPath, $exportedSettingsFile)
   
     run-command "cmd"  $exportBiztalkSettingsCmd
@@ -973,7 +973,7 @@ function test-biztalkAppExists(){
     try{
         
         #use bts task to list apps
-        $stdOutLog = [System.IO.Path]::GetTempFileName()
+        $stdOutLog =  Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
         $ListBiztalkAppCmd = [System.String]::Format("/c echo  & ""{0}""  ListApps > ""{1}""",$BtsTaskPath, $stdOutLog)
         
         
@@ -1006,10 +1006,10 @@ function run-command(){
     [Parameter(Mandatory=$True)]
     [array]$arguments
     )
-        $stdErrLog = [System.IO.Path]::GetTempFileName()
-        $stdOutLog = [System.IO.Path]::GetTempFileName()
+        $stdErrLog = Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
+        $stdOutLog =  Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
         Write-Host Executing command ... $commandToStart 
-        Write-verbose "Executing command ... $commandToStart  $arguments" 
+        Write-verbose "Executing command ... $commandToStart  " 
         
         $process  = Start-Process $commandToStart -ArgumentList $arguments  -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru 
         Get-Content $stdOutLog |Write-Host
