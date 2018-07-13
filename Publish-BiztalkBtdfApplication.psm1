@@ -103,7 +103,7 @@ Param(
     [boolean]$uninstallExistingVersion = $True,
 
     #This is the BtsTaskPath. 
-    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
+    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2016\BtsTask.exe",
 
     #This is the msbuild path.  
     [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe",
@@ -228,7 +228,7 @@ Param(
 
  
     #This is the BtsTaskPath. 
-    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe",
+    [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2016\BtsTask.exe",
 
     #This is the msbuild path.  
     [string]$msbuildPath = "$env:systemdrive\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe",
@@ -260,7 +260,7 @@ function get-dependentbiztalkapps (){
      [Parameter(Mandatory=$false)]
      [string] $managementDb = "",
      #This is the BtsTaskPath. 
-     [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
+     [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2016\BtsTask.exe"
 
     )
     $script:btsTaskPath = $btsTaskPath 
@@ -339,7 +339,7 @@ function Get-AppUninstallCommand(){
     )
     $app = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\** | Where-Object {
             $_.DisplayName -like "$appDisplayName*"
-        }
+    }
 
     if ($app -eq $null){
         $app = Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\** | Where-Object {
