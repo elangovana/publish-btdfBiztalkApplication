@@ -425,18 +425,59 @@ function get-shortcutProperties() {
     }
 }
 
+<#
+.SYNOPSIS
+    Installs the new version of biztalk MSI created using BTDF
+
+.DESCRIPTION
+    This script is used as a step during the deploy script, but can be called individually to be able to run SettingsFileGenerator and replace 
+    settings for the current environment using Octopus variables. After using this step directly, you should call Deploy to continue the BTDF process.
+
+    This script was tested with Biztalk 2016 and BTDF Release 5.7
+
+.INPUTS
+    None
+
+.OUTPUTS
+    None
+
+
+ .LINK
+    https://github.com/eloekset/publish-btdfBiztalkApplication forked from https://github.com/elangovana/publish-btdfBiztalkApplication
+
+.EXAMPLE
+
+    install-btdfBiztalkApp -biztalkMsi "C:\mybtdfMsi.msi" -installdir "C:\program files\mybtdfMsi" -installOptions @{<msiexec parameters>}
+
+    This installs BTDF Biztalk application MSI C:\mybtdfMsi.msi, into install directory C:\program files\mybtdfMsi.
+
+.EXAMPLE
+
+    install-btdfBiztalkApp -whatif
+
+    To run this script with the awesome whatif switch
+
+.EXAMPLE
+
+    install-btdfBiztalkApp -verbose
+    To run this script with increased logging use the -verbose switch
+
+#>
 function install-btdfBiztalkApp() {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
+        # The path of biztalk MSI created using BTDF
         [Parameter(Mandatory = $True)]
         [string]$BiztalkAppMSI,
 
+        # The directory into which the MSI needs to be installed
         [Parameter(Mandatory = $True)]
         [string]$installDir,
 
+        #This is a hash table of key-value pairs of install options. This is the list of public properties available when installing an MSI.
         [hashtable]$installOptions = $null
     )
-
+    $script:loglevel = get-loglevel
     $stdOutLog = Join-Path $([System.IO.Path]::GetTempPath())  $([System.Guid]::NewGuid().ToString())
     $additionalInstallProperties = flatten-keyValues $installOptions
 
@@ -1013,3 +1054,4 @@ function get-dependentbiztalkappsrecurse() {
 
 Export-ModuleMember -function publish-btdfBiztalkApplication
 Export-ModuleMember -function unpublish-btdfBiztalkApplication
+Export-ModuleMember -function install-btdfBiztalkApp
