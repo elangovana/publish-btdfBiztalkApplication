@@ -928,20 +928,60 @@ function test-biztalkAppExists() {
         # do nothing
     }
 }
+
+<#
+.SYNOPSIS
+    Runs Start-Process with a bit of logging and error handling
+
+.DESCRIPTION
+    This script is called several places internally, but is exported for ruse directly from Octopus.
+
+.INPUTS
+    None
+
+.OUTPUTS
+    None
+
+ .LINK
+    https://github.com/eloekset/publish-btdfBiztalkApplication forked from https://github.com/elangovana/publish-btdfBiztalkApplication
+
+.EXAMPLE
+
+    Start-Command -commandToStart "msiexec.exe" -arguments "/i C:\mybtdfMsi.msi"
+
+    This installs BTDF Biztalk application MSI C:\mybtdfMsi.msi.
+
+.EXAMPLE
+
+    Start-Command -verbose
+    To run this script with increased logging use the -verbose switch
+
+#>
 function Start-Command() {
     param(
+        # Command to start
         [Parameter(Mandatory = $True)]
         [string]$commandToStart,
 
+        # Arguments to be passed to the command
         [Parameter(Mandatory = $True)]
-        [array]$arguments
+        [array]$arguments,
+
+        # Set WorkingDirectory to save characters for relative paths
+        [Parameter(Mandatory = $False)]
+        [string]$workingDirectory = $null
     )
     $stdErrLog = Join-Path $([System.IO.Path]::GetTempPath()) $([System.Guid]::NewGuid().ToString())
     $stdOutLog = Join-Path $([System.IO.Path]::GetTempPath()) $([System.Guid]::NewGuid().ToString())
     Write-Host "Executing command ... $commandToStart"
     Write-Verbose "Executing command ... $commandToStart"
 
-    $process = Start-Process $commandToStart -ArgumentList $arguments -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru
+    if ([System.String]::IsNullOrEmpty($workingDirectory)) {
+        $process = Start-Process $commandToStart -ArgumentList $arguments -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru        
+    } else {
+        $process = Start-Process $commandToStart -ArgumentList $arguments -WorkingDirectory $workingDirectory -RedirectStandardOutput $stdOutLog -RedirectStandardError $stdErrLog -wait -PassThru
+    }
+    
     Get-Content $stdOutLog | Write-Host
 
     #throw errors if any
@@ -954,6 +994,69 @@ function Start-Command() {
     if ($process.ExitCode -ne 0) {
         Write-Error "Script $commandToStart failed. see log for errors"
     }
+}
+
+<#
+.SYNOPSIS
+    Runs EnvironmentSettingsExporter.exe and returns the path to the folder of the exported files.
+
+.DESCRIPTION
+    This script should be called before using Octopus Substitute Variables in Files community step: https://octopus.com/docs/deployment-process/configuration-features/substitute-variables-in-files
+
+.INPUTS
+    None
+
+.OUTPUTS
+    Path to folder where exported environment settings files are stored.
+
+
+ .LINK
+    https://github.com/eloekset/publish-btdfBiztalkApplication forked from https://github.com/elangovana/publish-btdfBiztalkApplication
+
+.EXAMPLE
+
+    Export-EnvironmentSettings -installDir "C:\Octopus\Applications\..."
+
+    This exports environment settings to a relative path default for BTDF.
+
+.EXAMPLE
+
+    Export-EnvironmentSettings -installDir "C:\Octopus\Applications\..." -verbose
+    To run this script with increased logging use the -verbose switch
+
+#>
+function Export-EnvironmentSettings() {
+    param(
+        # Command to start
+        [Parameter(Mandatory = $True)]
+        [string]$installDir
+    )
+    #Run EnvironmentSetttingsExporter.exe to genereate xml file for environment 
+    #to replace its values with matching Octopus variables
+    Write-Host "Export environment settings using BTDF"
+    Write-Verbose "installDir = $installDir"
+
+    ##Tools expected to be found at Deployment\Framework\DeployTools
+    $envSettingsExporterPath = "Deployment\Framework\DeployTools\EnvironmentSettingsExporter.exe"
+    $envSettingsExporterPath = Join-Path $installDir $envSettingsExporterPath
+    Write-Verbose "envSettingsExporterPath = $envSettingsExporterPath"
+
+    ##Export settings to Deployment\EnvironmentSettings
+    $envSettingsDirPath = "Deployment\EnvironmentSettings"
+    Write-Verbose "envSettingsDirPath = $envSettingsDirPath"
+    $settingsFileGeneratorPath = Join-Path $envSettingsDirPath "SettingsFileGenerator.xml"
+    Write-Verbose "settingsFileGeneratorPath = $settingsFileGeneratorPath"
+    $arg = @("""$settingsFileGeneratorPath"" ""$envSettingsDirPath"" ")
+
+    #TODO: Include this what if check when exporting this into the PowerShell module:
+    #what if check
+    #if ($pscmdlet.ShouldProcess("$env:computername", "cmd $arg")) {
+    Start-Command $envSettingsExporterPath $arg -WorkingDirectory $installDir
+    #}
+
+    $returnPath = Join-Path $installDir $envSettingsDirPath
+    Write-Verbose "returnPath = $returnPath"
+    return $returnPath
 }
 
 function get-dependentbiztalkappslevelone() {
@@ -1055,3 +1158,5 @@ function get-dependentbiztalkappsrecurse() {
 Export-ModuleMember -function publish-btdfBiztalkApplication
 Export-ModuleMember -function unpublish-btdfBiztalkApplication
 Export-ModuleMember -function install-btdfBiztalkApp
+Export-ModuleMember -function Start-Command
+Export-ModuleMember -function Export-EnvironmentSettings
