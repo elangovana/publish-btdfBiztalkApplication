@@ -1154,8 +1154,12 @@ function Substitute-XmlSettingsFileValues() {
         if ($null -ne $xmlProperty) {
             $newValue = $substituteSettings[$key]
             $existingValue = $xmlProperty.Node.InnerText
-            $xmlProperty.Node.InnerText = $newValue
-            Write-Output "Property ""$key"" got new value ""$newValue"" for existing value ""$existingValue"""
+            if ($newValue -eq $existingValue) {
+                Write-Output "Property ""$key"" already has value ""$newValue"""
+            } else {
+                $xmlProperty.Node.InnerText = $newValue
+                Write-Output "Property ""$key"" got new value ""$newValue"" for existing value ""$existingValue"""
+            }
         } else {
             Write-Verbose "Found no existing property named ""$key"""
         }
