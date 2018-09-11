@@ -1105,6 +1105,73 @@ function Export-EnvironmentSettings() {
     return $returnPath
 }
 
+<#
+.SYNOPSIS
+    Looks up existing properties in a settings file and replaces values with those provided by Octopus.
+
+.DESCRIPTION
+    This script can be used instead of the Octopus Substitute Variables in Files community step: https://octopus.com/docs/deployment-process/configuration-features/substitute-variables-in-files
+    Using this script has the advantages described here: https://github.com/eloekset/publish-btdfBiztalkApplication/issues/8
+
+.INPUTS
+    None
+
+.OUTPUTS
+    None
+
+ .LINK
+    https://github.com/eloekset/publish-btdfBiztalkApplication forked from https://github.com/elangovana/publish-btdfBiztalkApplication
+
+.EXAMPLE
+
+    Substitute-XmlSettingsFileValues -settingsFilePath "C:\Octopus\Applications\..." -substituteSettings @{ Setting1 = "Value 1" Setting2 = "Value 2" }
+
+    Replaces values of the file with the ones passed as substituteSettings.
+
+.EXAMPLE
+
+    Substitute-XmlSettingsFileValues -settingsFilePath "C:\Octopus\Applications\..." -substituteSettings @{ Setting1 = "Value 1" Setting2 = "Value 2" } -verbose
+    To run this script with increased logging use the -verbose switch. Will log properties not found and also properties not overriden.
+
+#>
+function Substitute-XmlSettingsFileValues() {
+    param(
+        # Path to xml file
+        [Parameter(Mandatory = $True)]
+        [string]$settingsFilePath,
+        # Settings to replace existing ones
+        [Parameter(Mandatory = $True)]
+        [hashtable]$substituteSettings
+    )
+    # Load source XML
+    $xml = New-Object -TypeName XML
+    $xml.Load($settingsFilePath)
+
+    ## Replace values of XML elements matching key name
+    Foreach($key in $substituteSettings.Keys) {
+        $xmlProperty = Select-XML -Xml $xml -XPath "/settings/property[@name='$key']"
+
+        if ($null -ne $xmlProperty) {
+            $newValue = $substituteSettings[$key]
+            $existingValue = $xmlProperty.Node.InnerText
+            $xmlProperty.Node.InnerText = $newValue
+            Write-Output "Property ""$key"" got new value ""$newValue"" for existing value ""$existingValue"""
+        } else {
+            Write-Verbose "Found no existing property named ""$key"""
+        }
+    }
+
+    ## Log existing settings in XML that got no override in Octopus
+    Foreach($xmlProperty in (Select-XML -Xml $xml -XPath "/settings/property")) {
+        $xmlPropertyName = $xmlProperty.Node.Attributes.GetNamedItem("name").Value
+        if(-not $substituteSettings.ContainsKey($xmlPropertyName)) {
+            Write-Verbose "No substitute setting provided for property $xmlPropertyName"
+        }
+    }
+ 
+    $Xml.Save($settingsFilePath)
+}
+
 function get-dependentbiztalkappslevelone() {
     param(
         [Parameter(Mandatory = $True)]
@@ -1207,3 +1274,4 @@ Export-ModuleMember -function install-btdfBiztalkApp
 Export-ModuleMember -function deploy-btdfBiztalkApp
 Export-ModuleMember -function Start-Command
 Export-ModuleMember -function Export-EnvironmentSettings
+Export-ModuleMember -function Substitute-XmlSettingsFileValues
