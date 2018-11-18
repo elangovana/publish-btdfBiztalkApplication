@@ -334,12 +334,12 @@ function Get-AppUninstallCommand(){
      [string]$appDisplayName
     )
     $app = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\** | Where-Object {
-                    $_.DisplayName -like “$appDisplayName*”
+            $_.DisplayName -like "$appDisplayName*"
         }
 
     if ($app -eq $null){
         $app = Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\** | Where-Object {
-                    $_.DisplayName -like “$appDisplayName*”
+            $_.DisplayName -like "$appDisplayName*"
         }
     }
     
