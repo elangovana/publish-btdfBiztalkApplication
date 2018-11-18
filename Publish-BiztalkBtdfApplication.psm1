@@ -1054,8 +1054,8 @@ param(
 
      Write-Verbose  $cmd
 
-     If ( ! (Get-module "sqlps" )) { 
-        Import-Module "sqlps" -DisableNameChecking 
+     If ( ! (Get-module "SqlServer" )) { 
+        Import-Module "SqlServer" -DisableNameChecking 
      }
    
      $appsdatarow = Invoke-Sqlcmd -ServerInstance $managmentDbServer  -Query $cmd -Database $managementdb
