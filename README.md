@@ -1,7 +1,7 @@
 # Publish-BTDFBiztalkApplication
 Powershell module to deploy biztalk applications created using BTDF
 
-##Description
+## Description
 This script deploys a biztalk MSI built using BTDF, through standard BTDF steps as follows
 
 - Takes a backup of the existing version of biztalk app, if any, MSI and bindings into a specified backup dir
