@@ -257,6 +257,8 @@ function get-dependentbiztalkapps (){
      [string] $biztalkAppName,
      [Parameter(Mandatory=$false)]
      [string] $managmentDbServer = "",
+     [Parameter(Mandatory=$false)]
+     [string] $managementDb = "",
      #This is the BtsTaskPath. 
      [string]$btsTaskPath="$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
 
@@ -264,11 +266,13 @@ function get-dependentbiztalkapps (){
     $script:btsTaskPath = $btsTaskPath 
 
     #if no sql server details are passed in attempt  to get this through btstask
-    if ([string]::IsNullOrEmpty( $managmentDbServer)){
-        $managmentDbServer = get-biztalkManagementServer 
+    if ([string]::IsNullOrEmpty($managmentDbServer) -or [string]::IsNullOrEmpty($managementDb)){
+        $managmentDbServer = get-biztalkManagementServer
+        $managmentDbServer = $managmentDbServer[0]
+        $managementDb = $managmentDbServer[1]
     }
 
-    [System.Collections.ArrayList] $result =[array] $( get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer)
+    [System.Collections.ArrayList] $result =[array] $( get-dependentbiztalkappsrecurse $biztalkAppName $managmentDbServer $managementDb)
     #The result also contains the biztalk app name who dependents we are looking for..
     if ($result.Contains($biztalkAppName) -and  $result[$($result.Count -1)] -eq $biztalkAppName ) {
         $tmp = $result.Remove($biztalkAppName)
@@ -580,18 +584,16 @@ function  undeploy-DependentBiztalkApps(){
             return
          }
 
-        $mgmtServer = get-biztalkManagementServer 
+        $mgmtServerDb = get-biztalkManagementServer 
 
-     
-
-       [array] $dependentAppsToUndeploy =[array] $(get-dependentbiztalkapps $biztalkAppName $mgmtServer)
+       [array] $dependentAppsToUndeploy =[array] $(get-dependentbiztalkapps $biztalkAppName $mgmtServerDb[0] $mgmtServerDb[1])
         
         if ($dependentAppsToUndeploy -eq $null -or $dependentAppsToUndeploy.Count -eq 0){
             write-host "No dependant apps to undeploy.. exiting"
             return
         }
 
-        if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
+        if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServerDb[0] $mgmtServerDb[1]){
             Write-Error "There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
         }
 
@@ -600,11 +602,11 @@ function  undeploy-DependentBiztalkApps(){
 
         foreach($app in $dependentAppsToUndeploy){
             Write-verbose "stopping dependent app $appToUndeploy"
-            stop-biztalkapplication $app $isFirstBiztalkServer $mgmtServer
+            stop-biztalkapplication $app $isFirstBiztalkServer $mgmtServerDb[0] $mgmtServerDb[1]
         }
 
         #just do one more check before backing up and removing apps
-         if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServer){
+         if (Test-MessagBoxInstances  $dependentAppsToUndeploy $mgmtServerDb[0] $mgmtServerDb[1]){
             Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
         }
 
@@ -671,17 +673,18 @@ function  undeploy-btdfBiztalkApp(){
             return
          }
 
-        #getDependant applications
-        [array] $dependantApps = [array] $(get-dependentbiztalkapps $biztalkAppName)
-        $mgmtServer = get-biztalkManagementServer
+        $mgmtServerDb = get-biztalkManagementServer
+         #getDependant applications
+        [array] $dependantApps = [array] $(get-dependentbiztalkapps $biztalkAppName $mgmtServerDb[0] $mgmtServerDb[1])
+        
         $tmpAppsToCheckActiveInstances = $dependantApps + @($biztalkAppName)
    
-        if (Test-MessagBoxInstances  $tmpAppsToCheckActiveInstances $mgmtServer){
+        if (Test-MessagBoxInstances  $tmpAppsToCheckActiveInstances $mgmtServerDb[0] $mgmtServerDb[1]){
             Write-Error "One or more dependent applications cannot be undeployed. There are active instances associated with one or more applications in $dependentAppsToUndeploy.."
         }
 
         # all seems ok,, stop application..
-        stop-biztalkapplication $biztalkAppName $isFirstBiztalkServer $mgmtServer
+        stop-biztalkapplication $biztalkAppName $isFirstBiztalkServer $mgmtServerDb[0] $mgmtServerDb[1]
 
         #if forced undeploy, then undeploy dependents apps
         if ($undeployDependentApps){          
@@ -960,7 +963,7 @@ function get-biztalkManagementServer(){
     
     Write-Host Exported group $server
 
-    return $server.Split(":")[0]
+    return $server.Split(":")
 }
 
 
@@ -1053,6 +1056,7 @@ param(
      "  where appd.nvcName = '$biztalkAppName' "
 
      Write-Verbose  $cmd
+    Write-Host "DB server: " $managmentDbServer " DB name: " $managementdb
 
      If ( ! (Get-module "SqlServer" )) { 
         Import-Module "SqlServer" -DisableNameChecking 
@@ -1089,11 +1093,13 @@ param(
  [string] $biztalkAppName,
  [Parameter(Mandatory=$True)]
  [string] $managmentDbServer,
+ [Parameter(Mandatory=$True)]
+ [string] $managementDb,
  [System.Collections.ArrayList] $dependencylist = @()
 )
 
-    Write-verbose "Checking dependency for $biztalkAppName on server $managmentDbServer"   
-    $apps = dependentbiztalkappslevelone $biztalkAppName $managmentDbServer
+    Write-verbose "Checking dependency for $biztalkAppName on server $managmentDbServer, db $managementDb"   
+    $apps = dependentbiztalkappslevelone $biztalkAppName $managmentDbServer $managementDb
     Write-verbose  "Dependents for $biztalkAppName :   $apps"
    
     #No other apps depends on this one. Time to exit..
@@ -1107,7 +1113,7 @@ param(
    
     #Ok there are other apps that depend on this one. So recurse through the dependent list
     foreach($app in $apps){
-       $moewdpends = get-dependentbiztalkappsrecurse $app $managmentDbServer $dependencylist
+       $moewdpends = get-dependentbiztalkappsrecurse $app $managmentDbServer $managementDb $dependencylist
        $appsToadd = get-itemsnotinlist $dependencylist $moewdpends 
        if ($appsToadd.Count -gt 0){
               $tmp =$dependencylist.AddRange($appsToadd)
