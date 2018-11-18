@@ -19,7 +19,7 @@ This script was tested with Biztalk 2013 R2 and BTDF Release 5.6 (Release Candid
 
 
 
-##EXAMPLE 1 - Get started
+##  1 - Get started
 
     Import-Module .\Publish-BiztalkBtdfApplication.psm1 
     publish-btdfBiztalkApplication  -biztalkMsi "C:\mybtdfMsi.msi" -installdir "C:\program files\mybtdfMsi"  -biztalkApplicationName DeploymentFramework.Samples.BasicMasterBindings -BtdfProductName "Deployment Framework for BizTalk - BasicMasterBindings" -backupDir c:\mybackupdir -importIntoBiztalkMgmtDb 1 -deployOptions @{"/p:VDIR_USERNAME"="contoso\adam";"/p:VDIR_USERPASS"="@5t7sd";"/p:ENV_SETTINGS"="""c:\program files\mybtdfMsi\Deployment\PortBindings.xml"""} 
@@ -30,22 +30,22 @@ This installs BTDF Biztalk application MSI C:\mybtdfMsi.msi, into install direct
 Note how the value of one of the BTDF deploy options, "/p:ENV_SETTINGS", is double quoted twice """c:\program files\mybtdfMsi\Deployment\PortBindings.xml""". Please make sure values with spaces are double quoted twice in the deploy, undeploy and install options hastable
     
 
-##EXAMPLE 2 - Whatif switch
+## EXAMPLE 2 - Whatif switch
 To run this script with the awesome whatif switch
 
         publish-btdfBiztalkApplication -whatif
   
-##EXAMPLE 3 - Increase logging
+## EXAMPLE 3 - Increase logging
 To run this script with increased log level for troublehooting, use the verbose switch
 
         publish-btdfBiztalkApplication -verbose
 
-##EXAMPLE 4 - Customise Msbuild and BtsTask paths
+## EXAMPLE 4 - Customise Msbuild and BtsTask paths
 Customises the paths of msbuild and btstask 
 
          publish-btdfBiztalkApplication  -msbuildPath "C:\Program Files (x86)\MSBuild\12.0\Bin\msbuild.exe" -btsTaskPath "$env:systemdrive\Program Files (x86)\Microsoft BizTalk Server 2013 R2\BtsTask.exe"
 
-##EXAMPLE 5 - Octopus Deploy
+## EXAMPLE 5 - Octopus Deploy
 Step 1: Download this module and import into octopus deploy as shown in http://docs.octopusdeploy.com/display/OD/Script+Modules
  
 
@@ -85,7 +85,7 @@ Step 2: Script - Sample application deployment
        
       New-Item $backupDir -ItemType Container -Force 
        
-      ##Publish using the powershell module.
+      ## Publish using the powershell module.
       publish-btdfBiztalkApplication  -biztalkMsi $Msi  -installdir  $appInstallDir  -biztalkApplicationName $biztalkAppName -btdfProductName $btdfProductName -backupDir $backupDir -importIntoBiztalkMgmtDb  $IsFirstBiztalkServer  -deployOptions  $deployOptions 
        
        
@@ -95,7 +95,7 @@ Step 2: Script - Sample application deployment
       #publish-BTDFBiztalkApplication –verbose
 
 
-##EXAMPLE 6  - To see more details, get help!
+## EXAMPLE 6  - To see more details, get help!
          
          get-help publish-BTDFBiztalkApplication -full
          
