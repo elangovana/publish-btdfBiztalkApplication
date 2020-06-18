@@ -10,7 +10,7 @@ This script deploys a biztalk MSI built using BTDF, through standard BTDF steps 
 - Installs the new version of biztalk MSI created using BTDF
 - Deploys the new installed version of biztalk using BTDF
 
-Please refer to the wiki for details on how to use this module. There's also a section on how to use it for Octopus Deploy.
+Please refer to the [wiki](https://github.com/elangovana/publish-btdfBiztalkApplication/wiki) for details on how to use this module. There's also a [section](https://github.com/elangovana/publish-btdfBiztalkApplication/wiki/Octopus-Deploy) on how to use it for Octopus Deploy.
 
 ## Contributing
 - For BizTalk 2016 and 2020, send Pull Requests to this repository.
