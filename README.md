@@ -13,12 +13,12 @@ This script deploys a biztalk MSI built using BTDF, through standard BTDF steps 
 Please refer to the wiki for details on how to use this module. There's also a section on how to use it for Octopus Deploy.
 
 ## Contributing
-- For BizTalk 2016 and vNext, send Pull Requests to this repository.
-- BizTalk 2013 is not used by me anymore, so start your own fork, or try to ping the original repository owner once more.
+- For BizTalk 2016 and 2020, send Pull Requests to this repository.
+- BizTalk 2013 is not used by maintainers of this repository anymore.
 
 ## Feedback
 - Open GitHub issues
-- Ask at StackOverflow (but I don't listen for any related tags).
+- Ask at StackOverflow (but we don't listen for any related tags).
 
 ## Related projects
 [BizTalk Deployment Framework (BTDF)](https://github.com/BTDF/DeploymentFramework)
